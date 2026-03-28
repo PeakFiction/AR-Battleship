@@ -28,3 +28,6 @@ ExportedObj/
 .DS_Store?
 ._*
 Thumbs.db
+**/bin/
+**/obj/
+.vscode/
