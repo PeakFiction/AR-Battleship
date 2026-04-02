@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="Missle_Confirm_Target_Tag" size="1.000000 0.562376" />
+    <ImageTarget name="Missile_Target_Tag_Temporary" size="1.000000 0.517964" />
+    <ImageTarget name="sevenstars" size="0.100000 0.164088" />
+  </Tracking>
+</QCARConfig>
