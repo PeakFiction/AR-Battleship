@@ -26,6 +26,7 @@ public class ShipPlacementUI : MonoBehaviour
 
     private void Start()
     {
+        GameManager.Instance.ResetGame();
         BuildUI();
     }
 

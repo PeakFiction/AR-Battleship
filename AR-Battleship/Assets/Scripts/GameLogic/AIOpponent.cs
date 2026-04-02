@@ -54,6 +54,8 @@ public class AIOpponent : MonoBehaviour
                 attempts++;
             }
         }
+    foreach (Ship s in GameManager.Instance.GetShips(1))
+    Debug.Log($"AI placed {s.Type} at ({s.OriginX},{s.OriginY}) {s.Orientation} size {s.Size}");
     }
 
     private void BuildRemainingCells()
