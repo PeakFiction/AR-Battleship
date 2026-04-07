@@ -75,20 +75,26 @@ public class Board
         if (!shootResult.IsSuccess)
             return Result<FireResult>.Failure(shootResult.Error!);
 
-        if (shootResult.Value == ShotResult.Miss)
+        switch (shootResult.Value)
         {
-            return Result<FireResult>.Success(new FireResult(coord, ShotResult.Miss));
+            case ShotResult.Miss:
+                return Result<FireResult>.Success(FireResult.Miss(coord));
+
+            case ShotResult.Hit:
+            case ShotResult.Sunk:
+                var ship = _ships.FirstOrDefault(s => s.Id == cell.ShipId);
+                if (ship == null)
+                    return Result<FireResult>.Failure("Hit cell has no associated ship.");
+
+                ship.RegisterHit(coord);
+
+                return ship.IsSunk
+                    ? Result<FireResult>.Success(FireResult.Sunk(coord, ship.Id))
+                    : Result<FireResult>.Success(FireResult.Hit(coord, ship.Id));
+
+            default:
+                return Result<FireResult>.Failure("Invalid shot result");
         }
-
-        // Must be a hit
-        var ship = _ships.FirstOrDefault(s => s.Id == cell.ShipId);
-        if (ship == null)
-            return Result<FireResult>.Failure("Hit cell has no associated ship.");
-
-        ship.RegisterHit(coord);
-
-        var result = ship.IsSunk ? ShotResult.Sunk : ShotResult.Hit;
-        return Result<FireResult>.Success(new FireResult(coord, result, ship.Id));
     }
 
     public bool AllShipsSunk()
