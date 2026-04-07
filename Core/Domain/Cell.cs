@@ -9,21 +9,21 @@ public class Cell(Coordinate coordinate)
     public bool IsShot => _isShot;
     public ShipId? ShipId => _shipId;
 
-    public void PlaceShip(ShipId shipId)
+    public Result<bool> PlaceShip(ShipId shipId)
     {
         if (_shipId != null)
-            throw new InvalidOperationException("Cell already has a ship.");
+            return Result<bool>.Failure("Cell already has a ship.");
 
         _shipId = shipId;
+        return Result<bool>.Success(true);
     }
 
-    public ShotResult Shoot()
+    public Result<ShotResult> Shoot()
     {
         if (_isShot)
-            throw new InvalidOperationException("Cell already shot.");
+            return Result<ShotResult>.Failure("Cell already shot.");
 
         _isShot = true;
-
-        return HasShip ? ShotResult.Hit : ShotResult.Miss;
+        return Result<ShotResult>.Success(HasShip ? ShotResult.Hit : ShotResult.Miss);
     }
 }
