@@ -2,13 +2,13 @@ public class Board
 {
     private readonly int _size;
     private readonly Dictionary<Coordinate, Cell> _cells;
-    private readonly List<Ship> _ships;
+    private readonly Dictionary<ShipId, Ship> _ships;
 
     public Board(int size)
     {
         _size = size;
         _cells = new Dictionary<Coordinate, Cell>();
-        _ships = new List<Ship>();
+        _ships = new Dictionary<ShipId, Ship>();
 
         InitializeCells();
     }
@@ -50,13 +50,17 @@ public class Board
         if (!CanPlaceShip(ship.Positions))
             return Result<bool>.Failure("Invalid ship placement (out of bounds or overlapping).");
 
-        _ships.Add(ship);
+        if (_ships.ContainsKey(ship.Id))
+            return Result<bool>.Failure("Ship with the same ID already exists.");
+
+        _ships[ship.Id] = ship; // add to dictionary
 
         foreach (var pos in ship.Positions)
         {
             var placeResult = _cells[pos].PlaceShip(ship.Id);
             if (!placeResult.IsSuccess)
             {
+                _ships.Remove(ship.Id); // rollback
                 return Result<bool>.Failure($"Failed to place ship at {pos}: {placeResult.Error}");
             }
         }
@@ -82,8 +86,7 @@ public class Board
 
             case ShotResult.Hit:
             case ShotResult.Sunk:
-                var ship = _ships.FirstOrDefault(s => s.Id == cell.ShipId);
-                if (ship == null)
+                if (cell.ShipId == null || !_ships.TryGetValue(cell.ShipId.Value, out var ship))
                     return Result<FireResult>.Failure("Hit cell has no associated ship.");
 
                 ship.RegisterHit(coord);
