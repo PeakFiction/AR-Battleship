@@ -1,0 +1,98 @@
+public class Board
+{
+    private readonly int _size;
+    private readonly Dictionary<Coordinate, Cell> _cells;
+    private readonly List<Ship> _ships;
+
+    public Board(int size)
+    {
+        _size = size;
+        _cells = new Dictionary<Coordinate, Cell>();
+        _ships = new List<Ship>();
+
+        InitializeCells();
+    }
+
+    private void InitializeCells()
+    {
+        for (int x = 0; x < _size; x++)
+        {
+            for (int y = 0; y < _size; y++)
+            {
+                var coord = new Coordinate(x, y);
+                _cells[coord] = new Cell(coord);
+            }
+        }
+    }
+
+    private bool IsWithinBounds(Coordinate coord)
+    {
+        return coord.X >= 0 && coord.X < _size &&
+               coord.Y >= 0 && coord.Y < _size;
+    }
+
+    public bool CanPlaceShip(IEnumerable<Coordinate> positions)
+    {
+        foreach (var pos in positions)
+        {
+            if (!IsWithinBounds(pos))
+                return false;
+
+            if (_cells[pos].HasShip)
+                return false;
+        }
+
+        return true;
+    }
+
+    public Result<bool> PlaceShip(Ship ship)
+    {
+        if (!CanPlaceShip(ship.Positions))
+            return Result<bool>.Failure("Invalid ship placement (out of bounds or overlapping).");
+
+        _ships.Add(ship);
+
+        foreach (var pos in ship.Positions)
+        {
+            var placeResult = _cells[pos].PlaceShip(ship.Id);
+            if (!placeResult.IsSuccess)
+            {
+                return Result<bool>.Failure($"Failed to place ship at {pos}: {placeResult.Error}");
+            }
+        }
+
+        return Result<bool>.Success(true);
+    }
+
+    public Result<FireResult> FireAt(Coordinate coord)
+    {
+        if (!IsWithinBounds(coord))
+            return Result<FireResult>.Failure("Coordinate out of bounds.");
+
+        var cell = _cells[coord];
+
+        var shootResult = cell.Shoot();
+        if (!shootResult.IsSuccess)
+            return Result<FireResult>.Failure(shootResult.Error!);
+
+        if (shootResult.Value == ShotResult.Miss)
+        {
+            return Result<FireResult>.Success(new FireResult(coord, ShotResult.Miss));
+        }
+
+        // Must be a hit
+        var ship = _ships.FirstOrDefault(s => s.Id == cell.ShipId);
+        if (ship == null)
+            return Result<FireResult>.Failure("Hit cell has no associated ship.");
+
+        ship.RegisterHit(coord);
+
+        var result = ship.IsSunk ? ShotResult.Sunk : ShotResult.Hit;
+        return Result<FireResult>.Success(new FireResult(coord, result, ship.Id));
+    }
+
+    public bool AllShipsSunk()
+    {
+        return _ships.All(s => s.IsSunk);
+    }
+}
