@@ -53,14 +53,14 @@ public class Board
         if (_ships.ContainsKey(ship.Id))
             return Result<bool>.Failure("Ship with the same ID already exists.");
 
-        _ships[ship.Id] = ship; // add to dictionary
+        _ships[ship.Id] = ship;
 
         foreach (var pos in ship.Positions)
         {
             var placeResult = _cells[pos].PlaceShip(ship.Id);
             if (!placeResult.IsSuccess)
             {
-                _ships.Remove(ship.Id); // rollback
+                _ships.Remove(ship.Id);
                 return Result<bool>.Failure($"Failed to place ship at {pos}: {placeResult.Error}");
             }
         }
