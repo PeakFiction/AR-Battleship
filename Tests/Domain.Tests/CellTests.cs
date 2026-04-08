@@ -48,7 +48,7 @@ public class CellTests
         {
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error, Is.EqualTo("Cell already has a ship."));
-            Assert.That(cell.ShipId, Is.EqualTo(shipId1)); // original ship remains
+            Assert.That(cell.ShipId, Is.EqualTo(shipId1));
         });
     }
 
@@ -88,9 +88,9 @@ public class CellTests
     public void Shoot_Should_Fail_When_CellAlreadyShot()
     {
         var cell = new Cell(new Coordinate(0, 0));
-        cell.Shoot(); // first shot
+        cell.Shoot();
 
-        var result = cell.Shoot(); // second shot
+        var result = cell.Shoot();
 
         Assert.Multiple(() =>
         {
