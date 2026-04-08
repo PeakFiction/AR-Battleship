@@ -46,7 +46,7 @@ public class CellTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Error, Is.EqualTo("Cell already has a ship."));
             Assert.That(cell.ShipId, Is.EqualTo(shipId1));
         });
@@ -94,7 +94,7 @@ public class CellTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Error, Is.EqualTo("Cell already shot."));
         });
     }
