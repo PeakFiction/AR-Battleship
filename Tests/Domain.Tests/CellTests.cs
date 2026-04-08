@@ -9,10 +9,13 @@ public class CellTests
         var coordinate = new Coordinate(1, 2);
         var cell = new Cell(coordinate);
 
-        Assert.AreEqual(coordinate, cell.Coordinate);
-        Assert.IsFalse(cell.HasShip);
-        Assert.IsFalse(cell.IsShot);
-        Assert.IsNull(cell.ShipId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(cell.Coordinate, Is.EqualTo(coordinate));
+            Assert.That(cell.HasShip, Is.False);
+            Assert.That(cell.IsShot, Is.False);
+            Assert.That(cell.ShipId, Is.Null);
+        });
     }
 
     [Test]
@@ -23,9 +26,12 @@ public class CellTests
 
         var result = cell.PlaceShip(shipId);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsTrue(cell.HasShip);
-        Assert.AreEqual(shipId, cell.ShipId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(cell.HasShip, Is.True);
+            Assert.That(cell.ShipId, Is.EqualTo(shipId));
+        });
     }
 
     [Test]
@@ -38,9 +44,12 @@ public class CellTests
         cell.PlaceShip(shipId1);
         var result = cell.PlaceShip(shipId2);
 
-        Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("Cell already has a ship.", result.Error);
-        Assert.AreEqual(shipId1, cell.ShipId); // original ship remains
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error, Is.EqualTo("Cell already has a ship."));
+            Assert.That(cell.ShipId, Is.EqualTo(shipId1)); // original ship remains
+        });
     }
 
     [Test]
@@ -50,9 +59,12 @@ public class CellTests
 
         var result = cell.Shoot();
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(ShotResult.Miss, result.Value);
-        Assert.IsTrue(cell.IsShot);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(ShotResult.Miss));
+            Assert.That(cell.IsShot, Is.True);
+        });
     }
 
     [Test]
@@ -64,9 +76,12 @@ public class CellTests
 
         var result = cell.Shoot();
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(ShotResult.Hit, result.Value);
-        Assert.IsTrue(cell.IsShot);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(ShotResult.Hit));
+            Assert.That(cell.IsShot, Is.True);
+        });
     }
 
     [Test]
@@ -77,7 +92,10 @@ public class CellTests
 
         var result = cell.Shoot(); // second shot
 
-        Assert.IsTrue(result.IsFailure);
-        Assert.AreEqual("Cell already shot.", result.Error);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error, Is.EqualTo("Cell already shot."));
+        });
     }
 }
