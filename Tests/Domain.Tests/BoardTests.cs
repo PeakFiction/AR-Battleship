@@ -98,7 +98,7 @@ public class BoardTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value.Result, Is.EqualTo(ShotResult.Miss));
+            Assert.That(result.Value!.Result, Is.EqualTo(ShotResult.Miss));
         });
     }
 
@@ -113,7 +113,7 @@ public class BoardTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value.Result, Is.EqualTo(ShotResult.Hit));
+            Assert.That(result.Value!.Result, Is.EqualTo(ShotResult.Hit));
         });
     }
 
@@ -128,7 +128,7 @@ public class BoardTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value.Result, Is.EqualTo(ShotResult.Sunk));
+            Assert.That(result.Value!.Result, Is.EqualTo(ShotResult.Sunk));
             Assert.That(ship.IsSunk, Is.True);
         });
     }
