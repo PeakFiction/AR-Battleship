@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 
+[TestFixture]
 public class ShipTests
 {
     private Ship CreateShip()
@@ -20,9 +21,9 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        var result = ship.RegisterHit(new Coordinate(0,0));
+        var result = ship.RegisterHit(new Coordinate(0, 0));
 
-        Assert.IsTrue(result);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -30,9 +31,9 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        var result = ship.RegisterHit(new Coordinate(5,5));
+        var result = ship.RegisterHit(new Coordinate(5, 5));
 
-        Assert.IsFalse(result);
+        Assert.That(result, Is.False);
     }
 
     [Test]
@@ -40,10 +41,10 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        ship.RegisterHit(new Coordinate(0,0));
-        var result = ship.RegisterHit(new Coordinate(0,0));
+        ship.RegisterHit(new Coordinate(0, 0));
+        var result = ship.RegisterHit(new Coordinate(0, 0));
 
-        Assert.IsFalse(result);
+        Assert.That(result, Is.False);
     }
 
     [Test]
@@ -51,10 +52,10 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        ship.RegisterHit(new Coordinate(0,0));
-        ship.RegisterHit(new Coordinate(0,1));
+        ship.RegisterHit(new Coordinate(0, 0));
+        ship.RegisterHit(new Coordinate(0, 1));
 
-        Assert.IsTrue(ship.IsSunk);
+        Assert.That(ship.IsSunk, Is.True);
     }
 
     [Test]
@@ -62,9 +63,9 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        ship.RegisterHit(new Coordinate(0,0));
+        ship.RegisterHit(new Coordinate(0, 0));
 
-        Assert.IsFalse(ship.IsSunk);
+        Assert.That(ship.IsSunk, Is.False);
     }
 
     [Test]
@@ -72,9 +73,9 @@ public class ShipTests
     {
         var ship = CreateShip();
 
-        Assert.Throws<System.NotSupportedException>(() =>
+        Assert.That(() =>
         {
-            ((List<Coordinate>)ship.Positions).Add(new Coordinate(9,9));
-        });
+            ((List<Coordinate>)ship.Positions).Add(new Coordinate(9, 9));
+        }, Throws.TypeOf<System.NotSupportedException>());
     }
 }
