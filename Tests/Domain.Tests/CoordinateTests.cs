@@ -10,9 +10,10 @@ public class CoordinateTests
         var a = new Coordinate(2, 3);
         var b = new Coordinate(2, 3);
 
-        Assert.AreEqual(a, b);
-        Assert.IsTrue(a.Equals(b));
-        Assert.IsTrue(a == b);
+        // In NUnit 4, Assert.That is the preferred entry point
+        Assert.That(b, Is.EqualTo(a));
+        Assert.That(a.Equals(b), Is.True);
+        Assert.That(a == b, Is.True);
     }
 
     [Test]
@@ -21,8 +22,8 @@ public class CoordinateTests
         var a = new Coordinate(2, 3);
         var b = new Coordinate(3, 2);
 
-        Assert.AreNotEqual(a, b);
-        Assert.IsTrue(a != b);
+        Assert.That(b, Is.Not.EqualTo(a));
+        Assert.That(a != b, Is.True);
     }
 
     [Test]
@@ -31,7 +32,7 @@ public class CoordinateTests
         object a = new Coordinate(1, 1);
         object b = new Coordinate(1, 1);
 
-        Assert.IsTrue(a.Equals(b));
+        Assert.That(a.Equals(b), Is.True);
     }
 
     [Test]
@@ -40,7 +41,7 @@ public class CoordinateTests
         var a = new Coordinate(5, 5);
         var b = new Coordinate(5, 5);
 
-        Assert.AreEqual(a.GetHashCode(), b.GetHashCode());
+        Assert.That(b.GetHashCode(), Is.EqualTo(a.GetHashCode()));
     }
 
     [Test]
@@ -49,28 +50,34 @@ public class CoordinateTests
         var a = new Coordinate(1, 2);
         var b = new Coordinate(2, 1);
 
-        Assert.AreNotEqual(a.GetHashCode(), b.GetHashCode());
+        Assert.That(b.GetHashCode(), Is.Not.EqualTo(a.GetHashCode()));
     }
 
     [Test]
     public void Coordinate_CanBeUsedInHashSet()
     {
         var set = new HashSet<Coordinate>();
+        var coord = new Coordinate(4, 4);
 
-        set.Add(new Coordinate(4, 4));
+        set.Add(coord);
 
-        Assert.IsTrue(set.Contains(new Coordinate(4, 4)));
+        // Use Does.Contain for collection checks
+        Assert.That(set, Does.Contain(new Coordinate(4, 4)));
     }
 
     [Test]
     public void Coordinate_CanBeUsedAsDictionaryKey()
     {
         var dict = new Dictionary<Coordinate, string>();
+        var coord = new Coordinate(1, 1);
 
-        dict[new Coordinate(1, 1)] = "hit";
+        dict[coord] = "hit";
 
-        Assert.IsTrue(dict.ContainsKey(new Coordinate(1, 1)));
-        Assert.AreEqual("hit", dict[new Coordinate(1, 1)]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(dict.ContainsKey(new Coordinate(1, 1)), Is.True);
+            Assert.That(dict[new Coordinate(1, 1)], Is.EqualTo("hit"));
+        });
     }
 
     [Test]
@@ -78,6 +85,6 @@ public class CoordinateTests
     {
         var coord = new Coordinate(7, 8);
 
-        Assert.AreEqual("(7, 8)", coord.ToString());
+        Assert.That(coord.ToString(), Is.EqualTo("(7, 8)"));
     }
 }
