@@ -22,7 +22,7 @@ public class CellTests
     public void PlaceShip_Should_Succeed_When_CellIsEmpty()
     {
         var cell = new Cell(new Coordinate(0, 0));
-        var shipId = new ShipId(Guid.NewGuid());
+        var shipId = ShipId.New();
 
         var result = cell.PlaceShip(shipId);
 
@@ -38,8 +38,8 @@ public class CellTests
     public void PlaceShip_Should_Fail_When_CellAlreadyHasShip()
     {
         var cell = new Cell(new Coordinate(0, 0));
-        var shipId1 = new ShipId(Guid.NewGuid());
-        var shipId2 = new ShipId(Guid.NewGuid());
+        var shipId1 = ShipId.New();
+        var shipId2 = ShipId.New();
 
         cell.PlaceShip(shipId1);
         var result = cell.PlaceShip(shipId2);
@@ -71,7 +71,7 @@ public class CellTests
     public void Shoot_Should_Return_Hit_When_CellHasShip()
     {
         var cell = new Cell(new Coordinate(0, 0));
-        var shipId = new ShipId(Guid.NewGuid());
+        var shipId = ShipId.New();
         cell.PlaceShip(shipId);
 
         var result = cell.Shoot();
