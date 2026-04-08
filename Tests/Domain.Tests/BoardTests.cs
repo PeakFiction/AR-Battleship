@@ -9,7 +9,7 @@ public class BoardTests
     [SetUp]
     public void SetUp()
     {
-        _board = new Board(5); // 5x5 board for testing
+        _board = new Board(5);
     }
 
     [Test]
@@ -20,7 +20,6 @@ public class BoardTests
             for (int y = 0; y < 5; y++)
             {
                 var coord = new Coordinate(x, y);
-                // NUnit 4 style for verifying no exceptions are thrown
                 Assert.That(() => _board.FireAt(coord), Throws.Nothing);
             }
         }
@@ -55,7 +54,7 @@ public class BoardTests
         var ship = new Ship(ShipId.New(), new List<Coordinate>
         {
             new Coordinate(0, 0),
-            new Coordinate(5, 5) // out-of-bounds
+            new Coordinate(5, 5)
         });
 
         Assert.That(_board.CanPlaceShip(ship.Positions), Is.False);
