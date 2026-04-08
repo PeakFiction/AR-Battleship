@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using System.Collections.Generic;
-using Domain;
 
 [TestFixture]
 public class CoordinateTests
