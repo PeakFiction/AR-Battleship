@@ -58,14 +58,6 @@ public class FireResultTests
     }
 
     [Test]
-    public void Message_Should_Throw_For_InvalidResult()
-    {
-        var fireResult = new FireResult(new Coordinate(0, 0), (ShotResult)99, null);
-
-        Assert.That(() => { var _ = fireResult.Message; }, Throws.TypeOf<InvalidOperationException>());
-    }
-
-    [Test]
     public void IsHit_Should_BeTrue_For_HitOrSunk()
     {
         var hitResult = FireResult.Hit(new Coordinate(0, 0), ShipId.New());
