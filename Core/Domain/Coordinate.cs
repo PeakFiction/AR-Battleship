@@ -1,7 +1,5 @@
 using System;
 
-namespace Domain
-{
     public readonly struct Coordinate(int x, int y) : IEquatable<Coordinate>
     {
         public int X { get; } = x;
@@ -37,4 +35,3 @@ namespace Domain
             return $"({X}, {Y})";
         }
     }
-}
