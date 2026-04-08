@@ -102,6 +102,6 @@ public class Board
 
     public bool AllShipsSunk()
     {
-        return _ships.All(kvp => kvp.Value.IsSunk);
+        return _ships.Values.All(ship => ship.IsSunk);
     }
 }
