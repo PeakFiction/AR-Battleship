@@ -10,7 +10,6 @@ public class CoordinateTests
         var a = new Coordinate(2, 3);
         var b = new Coordinate(2, 3);
 
-        // In NUnit 4, Assert.That is the preferred entry point
         Assert.That(b, Is.EqualTo(a));
         Assert.That(a.Equals(b), Is.True);
         Assert.That(a == b, Is.True);
@@ -61,7 +60,6 @@ public class CoordinateTests
 
         set.Add(coord);
 
-        // Use Does.Contain for collection checks
         Assert.That(set, Does.Contain(new Coordinate(4, 4)));
     }
 
