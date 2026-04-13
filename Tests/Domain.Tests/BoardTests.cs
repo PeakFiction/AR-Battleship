@@ -105,7 +105,10 @@ public class BoardTests
     [Test]
     public void FireAt_Should_ReturnHit_When_ShipIsHit()
     {
-        var ship = new Ship(ShipId.New(), new List<Coordinate> { new Coordinate(1, 1) });
+        var ship = new Ship(ShipId.New(), new List<Coordinate> { 
+            new Coordinate(1, 1), 
+            new Coordinate(1, 2)
+        });
         _board.PlaceShip(ship);
 
         var result = _board.FireAt(new Coordinate(1, 1));

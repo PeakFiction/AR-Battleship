@@ -75,7 +75,7 @@ public class ShipTests
 
         Assert.That(() =>
         {
-            ((List<Coordinate>)ship.Positions).Add(new Coordinate(9, 9));
-        }, Throws.TypeOf<System.NotSupportedException>());
+            var list = (List<Coordinate>)ship.Positions;
+        }, Throws.TypeOf<System.InvalidCastException>());
     }
 }
