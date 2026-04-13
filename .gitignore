@@ -1,12 +1,18 @@
 Library/
 Temp/
 Obj/
+obj/
+bin/
 Build/
 Builds/
 Logs/
 UserSettings/
 MemoryCaptures/
 ExportedObj/
+TestResults/
+coveragereport/
+*.coverage
+*.coveragexml
 *.csproj
 *.unityproj
 *.sln
@@ -14,6 +20,8 @@ ExportedObj/
 *.tmp
 *.user
 *.userprefs
+*.userosscache
+*.sln.docstates
 *.pidb
 *.booproj
 *.svd
@@ -24,6 +32,11 @@ ExportedObj/
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
+project.assets.json
+project.nuget.cache
+*.nupkg
+.vs/
+.vscode/
 .DS_Store
 .DS_Store?
 ._*
@@ -31,3 +44,4 @@ Thumbs.db
 **/bin/
 **/obj/
 .vscode/
+*.log
