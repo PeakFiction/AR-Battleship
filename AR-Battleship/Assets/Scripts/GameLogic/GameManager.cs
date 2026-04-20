@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
     public static event Action<int, int, ShotResult> OnEnemyShotFired;
     public static event Action<int> OnGameOver;
     public static event Action<string> OnBattleLogEntry;
+    public static event Action<int, ShipType> OnShipSunk;
 
     private void Awake()
     {
@@ -74,15 +75,22 @@ public class GameManager : MonoBehaviour
 
         OnPlayerShotFired?.Invoke(x, y, result);
 
-        string shipName = result == ShotResult.Hit || result == ShotResult.Sunk
-            ? CombatSystem.GetShipAtCell(ships[targetPlayer], x, y)?.Type.ToString()
-            : null;
-        string entry = result == ShotResult.Sunk
-            ? $"You sunk enemy's {shipName}!"
-            : result == ShotResult.Hit
-                ? $"You hit at ({x},{y})!"
-                : $"You missed at ({x},{y}).";
-        OnBattleLogEntry?.Invoke(entry);
+        if (result == ShotResult.Hit || result == ShotResult.Sunk)
+        {
+            Ship hitShip = CombatSystem.GetShipAtCell(ships[targetPlayer], x, y);
+            if (result == ShotResult.Sunk && hitShip != null)
+                OnShipSunk?.Invoke(targetPlayer, hitShip.Type);
+
+            string shipName = hitShip?.Type.ToString();
+            string entry = result == ShotResult.Sunk
+                ? $"You sunk enemy's {shipName}!"
+                : $"You hit at ({x},{y})!";
+            OnBattleLogEntry?.Invoke(entry);
+        }
+        else
+        {
+            OnBattleLogEntry?.Invoke($"You missed at ({x},{y}).");
+        }
 
         if (CombatSystem.AllShipsSunk(ships[targetPlayer]))
         {
@@ -105,15 +113,22 @@ public class GameManager : MonoBehaviour
 
         OnEnemyShotFired?.Invoke(x, y, result);
 
-        string shipName = result == ShotResult.Hit || result == ShotResult.Sunk
-            ? CombatSystem.GetShipAtCell(ships[0], x, y)?.Type.ToString()
-            : null;
-        string entry = result == ShotResult.Sunk
-            ? $"Enemy sunk your {shipName}!"
-            : result == ShotResult.Hit
-                ? $"Enemy hit at ({x},{y})!"
-                : $"Enemy missed at ({x},{y}).";
-        OnBattleLogEntry?.Invoke(entry);
+        if (result == ShotResult.Hit || result == ShotResult.Sunk)
+        {
+            Ship hitShip = CombatSystem.GetShipAtCell(ships[0], x, y);
+            if (result == ShotResult.Sunk && hitShip != null)
+                OnShipSunk?.Invoke(0, hitShip.Type);
+
+            string shipName = hitShip?.Type.ToString();
+            string entry = result == ShotResult.Sunk
+                ? $"Enemy sunk your {shipName}!"
+                : $"Enemy hit at ({x},{y})!";
+            OnBattleLogEntry?.Invoke(entry);
+        }
+        else
+        {
+            OnBattleLogEntry?.Invoke($"Enemy missed at ({x},{y}).");
+        }
 
         if (CombatSystem.AllShipsSunk(ships[0]))
         {

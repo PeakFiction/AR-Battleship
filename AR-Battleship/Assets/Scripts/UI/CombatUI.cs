@@ -64,9 +64,6 @@ public class CombatUI : MonoBehaviour
     private void HandleGameOver(int winnerIndex)
     {
         combatPanel.SetActive(false);
-        string msg = winnerIndex == 0 ? "You win!" : "You lose!";
-        HandleBattleLogEntry(msg);
-        Debug.Log(msg);
     }
 
     private void HandleBattleLogEntry(string entry)
