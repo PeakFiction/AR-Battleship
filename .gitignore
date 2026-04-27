@@ -1,8 +1,14 @@
 Library/
 Temp/
 Obj/
-obj/
-bin/
+Core/Domain/bin/
+Core/Domain/obj/
+Core/Application/bin/
+Core/Application/obj/
+Core/Tests/Domain.Tests/bin/
+Core/Tests/Domain.Tests/obj/
+Core/Tests/Application.Tests/bin/
+Core/Tests/Application.Tests/obj/
 Build/
 Builds/
 Logs/
@@ -13,9 +19,10 @@ TestResults/
 coveragereport/
 *.coverage
 *.coveragexml
-*.csproj
+AR-Battleship/Assembly-CSharp.csproj
+AR-Battleship/Assembly-CSharp-Editor.csproj
+AR-Battleship.slnx
 *.unityproj
-*.sln
 *.suo
 *.tmp
 *.user
@@ -43,5 +50,4 @@ project.nuget.cache
 Thumbs.db
 **/bin/
 **/obj/
-.vscode/
 *.log

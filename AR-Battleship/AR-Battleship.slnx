@@ -1,3 +1,6 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assets/Core/Domain/Domain.csproj" />
+  <Project Path="Assets/Core/Application/Application.csproj" />
+  <Project Path="Assets/Core/Tests/Application.Tests/Application.Tests.csproj" />
 </Solution>
