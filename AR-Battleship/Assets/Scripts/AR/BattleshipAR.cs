@@ -22,6 +22,7 @@ public class BattleshipAR : MonoBehaviour
     public Color hoverColor = Color.yellow;
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
+    public Color labelColor = Color.white;
 
     private bool boardTracked = false;
     private bool aimTracked = false;
@@ -33,6 +34,8 @@ public class BattleshipAR : MonoBehaviour
     private bool[,] cellFired;
     private GameObject hoverIndicator;
     private GameObject gridBorder;
+    private GameObject[] columnLabels;
+    private GameObject[] rowLabels;
     private Vector2Int currentHoverCell = new Vector2Int(-1, -1);
     private Vector2Int lockedCell = new Vector2Int(-1, -1);
 
@@ -41,6 +44,16 @@ public class BattleshipAR : MonoBehaviour
 
     private Vector3 smoothedLocalPos;
     private float smoothSpeed = 5f;
+
+    float CellX(int col)
+    {
+        return ((gridCols - 1 - col) * cellSize) + (cellSize / 2f) - (boardWidth / 2f) + offsetX;
+    }
+
+    float CellZ(int row)
+    {
+        return ((gridRows - 1 - row) * cellSize) + (cellSize / 2f) - (boardHeight / 2f) + offsetZ;
+    }
 
     void Start()
     {
@@ -55,6 +68,7 @@ public class BattleshipAR : MonoBehaviour
         confirmObserver.OnTargetStatusChanged += OnConfirmStatusChanged;
 
         CreateGrid();
+        CreateCoordinateLabels();
         CreateHoverIndicator();
     }
 
@@ -95,9 +109,6 @@ public class BattleshipAR : MonoBehaviour
 
     void CreateGrid()
     {
-        float halfW = boardWidth / 2f;
-        float halfH = boardHeight / 2f;
-
         for (int row = 0; row < gridRows; row++)
         {
             for (int col = 0; col < gridCols; col++)
@@ -106,9 +117,7 @@ public class BattleshipAR : MonoBehaviour
                 cell.name = $"Cell_{col}_{row}";
                 cell.transform.SetParent(boardObserver.transform);
 
-                float x = (col * cellSize) + (cellSize / 2f) - halfW + offsetX;
-                float z = ((gridRows - 1 - row) * cellSize) + (cellSize / 2f) - halfH + offsetZ;
-                cell.transform.localPosition = new Vector3(x, 0.001f, z);
+                cell.transform.localPosition = new Vector3(CellX(col), 0.001f, CellZ(row));
                 cell.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 cell.transform.localScale = new Vector3(cellSize * 0.9f, cellSize * 0.9f, 1f);
 
@@ -136,6 +145,61 @@ public class BattleshipAR : MonoBehaviour
         rend.material = CreateCellMaterial(Color.white, 0.15f);
         Destroy(gridBorder.GetComponent<Collider>());
         gridBorder.SetActive(false);
+    }
+
+    void CreateCoordinateLabels()
+    {
+        float halfW = boardWidth / 2f;
+        float halfH = boardHeight / 2f;
+        float labelOffset = cellSize * 0.7f;
+
+        columnLabels = new GameObject[gridCols];
+        for (int col = 0; col < gridCols; col++)
+        {
+            GameObject label = new GameObject($"ColLabel_{col}");
+            label.transform.SetParent(boardObserver.transform);
+
+            float x = CellX(col);
+            float z = halfH + offsetZ + labelOffset;
+            label.transform.localPosition = new Vector3(x, 0.002f, z);
+            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            label.transform.localScale = new Vector3(-1f, 1f, 1f);
+
+            TextMesh tm = label.AddComponent<TextMesh>();
+            tm.text = ((char)('A' + col)).ToString();
+            tm.fontSize = 50;
+            tm.characterSize = cellSize * 0.25f;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = labelColor;
+
+            label.SetActive(false);
+            columnLabels[col] = label;
+        }
+
+        rowLabels = new GameObject[gridRows];
+        for (int row = 0; row < gridRows; row++)
+        {
+            GameObject label = new GameObject($"RowLabel_{row}");
+            label.transform.SetParent(boardObserver.transform);
+
+            float x = halfW + offsetX + labelOffset;
+            float z = CellZ(row);
+            label.transform.localPosition = new Vector3(x, 0.002f, z);
+            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            label.transform.localScale = new Vector3(-1f, 1f, 1f);
+
+            TextMesh tm = label.AddComponent<TextMesh>();
+            tm.text = (row + 1).ToString();
+            tm.fontSize = 50;
+            tm.characterSize = cellSize * 0.25f;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = labelColor;
+
+            label.SetActive(false);
+            rowLabels[row] = label;
+        }
     }
 
     void CreateHoverIndicator()
@@ -173,11 +237,18 @@ public class BattleshipAR : MonoBehaviour
     {
         boardTracked = status.Status == Status.TRACKED
                     || status.Status == Status.EXTENDED_TRACKED;
+
         for (int row = 0; row < gridRows; row++)
             for (int col = 0; col < gridCols; col++)
                 cellObjects[col, row].SetActive(boardTracked);
 
         gridBorder.SetActive(boardTracked);
+
+        for (int col = 0; col < gridCols; col++)
+            columnLabels[col].SetActive(boardTracked);
+        for (int row = 0; row < gridRows; row++)
+            rowLabels[row].SetActive(boardTracked);
+
         if (!boardTracked)
         {
             lockedCell = new Vector2Int(-1, -1);
@@ -227,7 +298,7 @@ public class BattleshipAR : MonoBehaviour
         float gridLocalX = localPos.x - offsetX;
         float gridLocalZ = localPos.z - offsetZ;
 
-        int col = Mathf.FloorToInt((gridLocalX + halfW) / cellSize);
+        int col = (gridCols - 1) - Mathf.FloorToInt((gridLocalX + halfW) / cellSize);
         int row = (gridRows - 1) - Mathf.FloorToInt((gridLocalZ + halfH) / cellSize);
 
         bool valid = col >= 0 && col < gridCols
@@ -257,11 +328,7 @@ public class BattleshipAR : MonoBehaviour
                 currentHoverCell = cell;
                 lockedCell = cell;
 
-                float halfW = boardWidth / 2f;
-                float halfH = boardHeight / 2f;
-                float x = (cell.x * cellSize) + (cellSize / 2f) - halfW + offsetX;
-                float z = ((gridRows - 1 - cell.y) * cellSize) + (cellSize / 2f) - halfH + offsetZ;
-                hoverIndicator.transform.localPosition = new Vector3(x, 0.003f, z);
+                hoverIndicator.transform.localPosition = new Vector3(CellX(cell.x), 0.003f, CellZ(cell.y));
                 hoverIndicator.SetActive(true);
 
                 Renderer hRend = hoverIndicator.GetComponent<Renderer>();
