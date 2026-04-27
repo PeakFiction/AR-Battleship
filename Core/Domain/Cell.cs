@@ -1,29 +1,38 @@
-public class Cell(Coordinate coordinate)
-{
-    private readonly Coordinate _coordinate = coordinate;
-    private ShipId? _shipId = null;
-    private bool _isShot = false;
+using System;
 
-    public Coordinate Coordinate => _coordinate;
-    public bool HasShip => _shipId != null;
-    public bool IsShot => _isShot;
-    public ShipId? ShipId => _shipId;
-
-    public Result<bool> PlaceShip(ShipId shipId)
+namespace ARBattleship.Core.Domain {
+    public class Cell
     {
-        if (_shipId != null)
-            return Result<bool>.Failure("Cell already has a ship.");
+        private readonly Coordinate _coordinate;
 
-        _shipId = shipId;
-        return Result<bool>.Success(true);
-    }
+        public Cell(Coordinate coordinate)
+        {
+            _coordinate = coordinate;
+        }
+        private ShipId? _shipId = null;
+        private bool _isShot = false;
 
-    public Result<ShotResult> Shoot()
-    {
-        if (_isShot)
-            return Result<ShotResult>.Failure("Cell already shot.");
+        public Coordinate Coordinate => _coordinate;
+        public bool HasShip => _shipId != null;
+        public bool IsShot => _isShot;
+        public ShipId? ShipId => _shipId;
 
-        _isShot = true;
-        return Result<ShotResult>.Success(HasShip ? ShotResult.Hit : ShotResult.Miss);
+        public Result<bool> PlaceShip(ShipId shipId)
+        {
+            if (_shipId != null)
+                return Result<bool>.Failure("Cell already has a ship.");
+
+            _shipId = shipId;
+            return Result<bool>.Success(true);
+        }
+
+        public Result<ShotResult> Shoot()
+        {
+            if (_isShot)
+                return Result<ShotResult>.Failure("Cell already shot.");
+
+            _isShot = true;
+            return Result<ShotResult>.Success(HasShip ? ShotResult.Hit : ShotResult.Miss);
+        }
     }
 }
