@@ -30,6 +30,27 @@ namespace ARBattleship.Core.Application.Services
                 winner: _game.Winner);
         }
 
+		public Result<bool, GameErrorCode> TryStartGame()
+		{
+			var result = _game.StartGame();
+
+			if(result.IsSuccess)
+			{
+				AddEvent(new AnnouncementEvent("Battle Started!"));
+				return Result<bool, GameErrorCode>.Success(true);
+			}
+
+			var errorCode = result.Error switch
+			{
+				var e when e != null && e.Contains("only be called during Setup", StringComparison.OrdinalIgnoreCase)
+					=> GameErrorCode.GameAlreadyStarted,
+				var e when e != null && e.Contains("has not placed any ships", StringComparison.OrdinalIgnoreCase)
+					=> GameErrorCode.InvalidShipPlacement,
+				_ => GameErrorCode.Unknown
+			};
+			return Result<bool, GameErrorCode>.Failure(errorCode);
+		}
+
         public Result<ShotOutcome, GameErrorCode> TryFireShot(FireShotCommand command)
         {
             // 1. Phase guard
