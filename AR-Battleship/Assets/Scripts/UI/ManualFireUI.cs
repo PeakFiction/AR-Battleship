@@ -1,226 +1,233 @@
 using UnityEngine;
 using UnityEngine.UI;
+using ARBattleship.Core.Application.Enums;
+using ARBattleship.Core.Domain;
 
-public class ManualFireUI : MonoBehaviour
+namespace ARBattleship.Unity.UI
 {
-    private InputField colInput;
-    private InputField rowInput;
-    private Text statusText;
-    private GameObject panel;
-
-    void Start()
+    public class ManualFireUI : MonoBehaviour
     {
-        BuildUI();
-    }
+        private InputField colInput;
+        private InputField rowInput;
+        private Text statusText;
+        private GameObject panel;
 
-    void OnEnable()
-    {
-        GameManager.OnGameStarted += ShowPanel;
-        GameManager.OnGameOver += HidePanel;
-    }
-
-    void OnDisable()
-    {
-        GameManager.OnGameStarted -= ShowPanel;
-        GameManager.OnGameOver -= HidePanel;
-    }
-
-    void ShowPanel()
-    {
-        if (panel != null) panel.SetActive(true);
-    }
-
-    void HidePanel(int winnerIndex)
-    {
-        if (panel != null) panel.SetActive(false);
-    }
-
-    void BuildUI()
-    {
-        Canvas canvas = GetComponentInParent<Canvas>();
-
-        panel = new GameObject("ManualFirePanel");
-        panel.transform.SetParent(canvas.transform, false);
-        RectTransform panelRT = panel.AddComponent<RectTransform>();
-        panelRT.anchorMin = new Vector2(0f, 1f);
-        panelRT.anchorMax = new Vector2(0f, 1f);
-        panelRT.pivot = new Vector2(0f, 1f);
-        panelRT.anchoredPosition = new Vector2(10f, -10f);
-        panelRT.sizeDelta = new Vector2(180f, 175f);
-        Image panelBg = panel.AddComponent<Image>();
-        panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-        panelBg.raycastTarget = false;
-
-        CreateLabel(panel.transform, "Manual Fire", new Vector2(0f, -5f), new Vector2(180f, 25f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
-
-        CreateLabel(panel.transform, "Column (A-J):", new Vector2(10f, -32f), new Vector2(160f, 20f), 12, FontStyle.Normal, TextAnchor.MiddleLeft);
-        colInput = CreateInputField(panel.transform, new Vector2(10f, -52f), new Vector2(160f, 28f), "A", 1);
-
-        CreateLabel(panel.transform, "Row (1-10):", new Vector2(10f, -85f), new Vector2(160f, 20f), 12, FontStyle.Normal, TextAnchor.MiddleLeft);
-        rowInput = CreateInputField(panel.transform, new Vector2(10f, -105f), new Vector2(160f, 28f), "1", 2);
-
-        GameObject fireBtnObj = new GameObject("FireButton");
-        fireBtnObj.transform.SetParent(panel.transform, false);
-        RectTransform fireRT = fireBtnObj.AddComponent<RectTransform>();
-        fireRT.anchorMin = new Vector2(0f, 1f);
-        fireRT.anchorMax = new Vector2(0f, 1f);
-        fireRT.pivot = new Vector2(0f, 1f);
-        fireRT.anchoredPosition = new Vector2(10f, -138f);
-        fireRT.sizeDelta = new Vector2(100f, 30f);
-        fireBtnObj.AddComponent<Image>().color = new Color(0.8f, 0.15f, 0.15f, 1f);
-        Button fireButton = fireBtnObj.AddComponent<Button>();
-        fireButton.onClick.AddListener(OnFireClicked);
-
-        GameObject fireLabelObj = new GameObject("Label");
-        fireLabelObj.transform.SetParent(fireBtnObj.transform, false);
-        RectTransform flRT = fireLabelObj.AddComponent<RectTransform>();
-        flRT.anchorMin = Vector2.zero;
-        flRT.anchorMax = Vector2.one;
-        flRT.offsetMin = Vector2.zero;
-        flRT.offsetMax = Vector2.zero;
-        Text fireLabel = fireLabelObj.AddComponent<Text>();
-        fireLabel.text = "FIRE";
-        fireLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        fireLabel.fontSize = 16;
-        fireLabel.fontStyle = FontStyle.Bold;
-        fireLabel.alignment = TextAnchor.MiddleCenter;
-        fireLabel.color = Color.white;
-        fireLabel.raycastTarget = false;
-
-        GameObject statusObj = new GameObject("StatusText");
-        statusObj.transform.SetParent(panel.transform, false);
-        RectTransform statusRT = statusObj.AddComponent<RectTransform>();
-        statusRT.anchorMin = new Vector2(0f, 1f);
-        statusRT.anchorMax = new Vector2(1f, 1f);
-        statusRT.pivot = new Vector2(0.5f, 1f);
-        statusRT.anchoredPosition = new Vector2(0f, -138f);
-        statusRT.sizeDelta = new Vector2(-120f, 30f);
-        statusText = statusObj.AddComponent<Text>();
-        statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        statusText.fontSize = 12;
-        statusText.alignment = TextAnchor.MiddleCenter;
-        statusText.color = Color.yellow;
-        statusText.text = "";
-        statusText.raycastTarget = false;
-
-        panel.SetActive(false);
-    }
-
-    void OnFireClicked()
-    {
-        string colText = colInput.text.Trim().ToUpper();
-        string rowText = rowInput.text.Trim();
-
-        if (colText.Length != 1 || colText[0] < 'A' || colText[0] > 'J')
+        void Start()
         {
-            statusText.text = "Invalid column";
-            return;
+            BuildUI();
         }
 
-        if (!int.TryParse(rowText, out int rowNum) || rowNum < 1 || rowNum > 10)
+        void OnEnable()
         {
-            statusText.text = "Invalid row";
-            return;
+            GameManager.OnGameStarted += ShowPanel;
+            GameManager.OnGameOver += HidePanel;
         }
 
-        if (GameManager.Instance.CurrentPhase != GamePhase.Playing)
+        void OnDisable()
         {
-            statusText.text = "Game not active";
-            return;
+            GameManager.OnGameStarted -= ShowPanel;
+            GameManager.OnGameOver -= HidePanel;
         }
 
-        if (GameManager.Instance.CurrentPlayerTurn != 0)
+        void ShowPanel()
         {
-            statusText.text = "Not your turn";
-            return;
+            if (panel != null) panel.SetActive(true);
         }
 
-        int col = colText[0] - 'A';
-        int row = rowNum - 1;
+        void HidePanel(int winnerIndex)
+        {
+            if (panel != null) panel.SetActive(false);
+        }
 
-        ShotResult result = GameManager.Instance.FireShot(col, row);
-        string coord = $"{colText}{rowNum}";
+        void OnFireClicked()
+        {
+            string colText = colInput.text.Trim().ToUpper();
+            string rowText = rowInput.text.Trim();
 
-        if (result == ShotResult.AlreadyFired)
-            statusText.text = $"{coord}: Already fired";
-        else if (result == ShotResult.Miss)
-            statusText.text = $"{coord}: Miss";
-        else if (result == ShotResult.Hit)
-            statusText.text = $"{coord}: Hit!";
-        else if (result == ShotResult.Sunk)
-            statusText.text = $"{coord}: Sunk!";
-    }
+            if (colText.Length != 1 || colText[0] < 'A' || colText[0] > 'J')
+            {
+                statusText.text = "Invalid column";
+                return;
+            }
 
-    void CreateLabel(Transform parent, string text, Vector2 pos, Vector2 size, int fontSize, FontStyle style, TextAnchor anchor)
-    {
-        GameObject obj = new GameObject(text);
-        obj.transform.SetParent(parent, false);
-        RectTransform rt = obj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0f, 1f);
-        rt.anchorMax = new Vector2(0f, 1f);
-        rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta = size;
-        Text t = obj.AddComponent<Text>();
-        t.text = text;
-        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        t.fontSize = fontSize;
-        t.fontStyle = style;
-        t.color = Color.white;
-        t.alignment = anchor;
-        t.raycastTarget = false;
-    }
+            if (!int.TryParse(rowText, out int rowNum) || rowNum < 1 || rowNum > 10)
+            {
+                statusText.text = "Invalid row";
+                return;
+            }
 
-    InputField CreateInputField(Transform parent, Vector2 pos, Vector2 size, string defaultText, int charLimit)
-    {
-        GameObject obj = new GameObject("InputField");
-        obj.transform.SetParent(parent, false);
-        RectTransform rt = obj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0f, 1f);
-        rt.anchorMax = new Vector2(0f, 1f);
-        rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta = size;
+            // GamePhase.Playing replaced with GamePhase.InProgress
+            if (GameManager.Instance.CurrentPhase != GamePhase.InProgress)
+            {
+                statusText.text = "Game not active";
+                return;
+            }
 
-        Image bg = obj.AddComponent<Image>();
-        bg.color = new Color(0.25f, 0.25f, 0.25f, 1f);
+            if (GameManager.Instance.CurrentPlayerTurn != 0)
+            {
+                statusText.text = "Not your turn";
+                return;
+            }
 
-        GameObject textObj = new GameObject("Text");
-        textObj.transform.SetParent(obj.transform, false);
-        RectTransform textRT = textObj.AddComponent<RectTransform>();
-        textRT.anchorMin = Vector2.zero;
-        textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(8f, 2f);
-        textRT.offsetMax = new Vector2(-8f, -2f);
-        Text inputText = textObj.AddComponent<Text>();
-        inputText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        inputText.fontSize = 16;
-        inputText.color = Color.white;
-        inputText.alignment = TextAnchor.MiddleLeft;
-        inputText.supportRichText = false;
+            int col = colText[0] - 'A';
+            int row = rowNum - 1;
 
-        GameObject placeholderObj = new GameObject("Placeholder");
-        placeholderObj.transform.SetParent(obj.transform, false);
-        RectTransform phRT = placeholderObj.AddComponent<RectTransform>();
-        phRT.anchorMin = Vector2.zero;
-        phRT.anchorMax = Vector2.one;
-        phRT.offsetMin = new Vector2(8f, 2f);
-        phRT.offsetMax = new Vector2(-8f, -2f);
-        Text placeholder = placeholderObj.AddComponent<Text>();
-        placeholder.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        placeholder.fontSize = 16;
-        placeholder.fontStyle = FontStyle.Italic;
-        placeholder.color = new Color(1f, 1f, 1f, 0.3f);
-        placeholder.alignment = TextAnchor.MiddleLeft;
-        placeholder.text = defaultText;
-        placeholder.raycastTarget = false;
+            // ShotResult replaced with ShotOutcome
+            ShotOutcome outcome = GameManager.Instance.FireShot(col, row);
+            string coord = $"{colText}{rowNum}";
 
-        InputField input = obj.AddComponent<InputField>();
-        input.textComponent = inputText;
-        input.placeholder = placeholder;
-        input.characterLimit = charLimit;
-        input.text = defaultText;
+            // ShotResult.AlreadyFired replaced with ShotOutcome.None
+            statusText.text = outcome switch
+            {
+                ShotOutcome.None => $"{coord}: Already fired",
+                ShotOutcome.Miss => $"{coord}: Miss",
+                ShotOutcome.Hit  => $"{coord}: Hit!",
+                ShotOutcome.Sunk => $"{coord}: Sunk!",
+                _                => string.Empty
+            };
+        }
 
-        return input;
+        void BuildUI()
+        {
+            Canvas canvas = GetComponentInParent<Canvas>();
+
+            panel = new GameObject("ManualFirePanel");
+            panel.transform.SetParent(canvas.transform, false);
+            RectTransform panelRT = panel.AddComponent<RectTransform>();
+            panelRT.anchorMin = new Vector2(0f, 1f);
+            panelRT.anchorMax = new Vector2(0f, 1f);
+            panelRT.pivot = new Vector2(0f, 1f);
+            panelRT.anchoredPosition = new Vector2(10f, -10f);
+            panelRT.sizeDelta = new Vector2(180f, 175f);
+            Image panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+            panelBg.raycastTarget = false;
+
+            CreateLabel(panel.transform, "Manual Fire", new Vector2(0f, -5f), new Vector2(180f, 25f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+
+            CreateLabel(panel.transform, "Column (A-J):", new Vector2(10f, -32f), new Vector2(160f, 20f), 12, FontStyle.Normal, TextAnchor.MiddleLeft);
+            colInput = CreateInputField(panel.transform, new Vector2(10f, -52f), new Vector2(160f, 28f), "A", 1);
+
+            CreateLabel(panel.transform, "Row (1-10):", new Vector2(10f, -85f), new Vector2(160f, 20f), 12, FontStyle.Normal, TextAnchor.MiddleLeft);
+            rowInput = CreateInputField(panel.transform, new Vector2(10f, -105f), new Vector2(160f, 28f), "1", 2);
+
+            GameObject fireBtnObj = new GameObject("FireButton");
+            fireBtnObj.transform.SetParent(panel.transform, false);
+            RectTransform fireRT = fireBtnObj.AddComponent<RectTransform>();
+            fireRT.anchorMin = new Vector2(0f, 1f);
+            fireRT.anchorMax = new Vector2(0f, 1f);
+            fireRT.pivot = new Vector2(0f, 1f);
+            fireRT.anchoredPosition = new Vector2(10f, -138f);
+            fireRT.sizeDelta = new Vector2(100f, 30f);
+            fireBtnObj.AddComponent<Image>().color = new Color(0.8f, 0.15f, 0.15f, 1f);
+            Button fireButton = fireBtnObj.AddComponent<Button>();
+            fireButton.onClick.AddListener(OnFireClicked);
+
+            GameObject fireLabelObj = new GameObject("Label");
+            fireLabelObj.transform.SetParent(fireBtnObj.transform, false);
+            RectTransform flRT = fireLabelObj.AddComponent<RectTransform>();
+            flRT.anchorMin = Vector2.zero;
+            flRT.anchorMax = Vector2.one;
+            flRT.offsetMin = Vector2.zero;
+            flRT.offsetMax = Vector2.zero;
+            Text fireLabel = fireLabelObj.AddComponent<Text>();
+            fireLabel.text = "FIRE";
+            fireLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            fireLabel.fontSize = 16;
+            fireLabel.fontStyle = FontStyle.Bold;
+            fireLabel.alignment = TextAnchor.MiddleCenter;
+            fireLabel.color = Color.white;
+            fireLabel.raycastTarget = false;
+
+            GameObject statusObj = new GameObject("StatusText");
+            statusObj.transform.SetParent(panel.transform, false);
+            RectTransform statusRT = statusObj.AddComponent<RectTransform>();
+            statusRT.anchorMin = new Vector2(0f, 1f);
+            statusRT.anchorMax = new Vector2(1f, 1f);
+            statusRT.pivot = new Vector2(0.5f, 1f);
+            statusRT.anchoredPosition = new Vector2(0f, -138f);
+            statusRT.sizeDelta = new Vector2(-120f, 30f);
+            statusText = statusObj.AddComponent<Text>();
+            statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            statusText.fontSize = 12;
+            statusText.alignment = TextAnchor.MiddleCenter;
+            statusText.color = Color.yellow;
+            statusText.text = "";
+            statusText.raycastTarget = false;
+
+            panel.SetActive(false);
+        }
+
+        void CreateLabel(Transform parent, string text, Vector2 pos, Vector2 size, int fontSize, FontStyle style, TextAnchor anchor)
+        {
+            GameObject obj = new GameObject(text);
+            obj.transform.SetParent(parent, false);
+            RectTransform rt = obj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+            Text t = obj.AddComponent<Text>();
+            t.text = text;
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.fontSize = fontSize;
+            t.fontStyle = style;
+            t.color = Color.white;
+            t.alignment = anchor;
+            t.raycastTarget = false;
+        }
+
+        InputField CreateInputField(Transform parent, Vector2 pos, Vector2 size, string defaultText, int charLimit)
+        {
+            GameObject obj = new GameObject("InputField");
+            obj.transform.SetParent(parent, false);
+            RectTransform rt = obj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+
+            obj.AddComponent<Image>().color = new Color(0.25f, 0.25f, 0.25f, 1f);
+
+            GameObject textObj = new GameObject("Text");
+            textObj.transform.SetParent(obj.transform, false);
+            RectTransform textRT = textObj.AddComponent<RectTransform>();
+            textRT.anchorMin = Vector2.zero;
+            textRT.anchorMax = Vector2.one;
+            textRT.offsetMin = new Vector2(8f, 2f);
+            textRT.offsetMax = new Vector2(-8f, -2f);
+            Text inputText = textObj.AddComponent<Text>();
+            inputText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            inputText.fontSize = 16;
+            inputText.color = Color.white;
+            inputText.alignment = TextAnchor.MiddleLeft;
+            inputText.supportRichText = false;
+
+            GameObject placeholderObj = new GameObject("Placeholder");
+            placeholderObj.transform.SetParent(obj.transform, false);
+            RectTransform phRT = placeholderObj.AddComponent<RectTransform>();
+            phRT.anchorMin = Vector2.zero;
+            phRT.anchorMax = Vector2.one;
+            phRT.offsetMin = new Vector2(8f, 2f);
+            phRT.offsetMax = new Vector2(-8f, -2f);
+            Text placeholder = placeholderObj.AddComponent<Text>();
+            placeholder.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            placeholder.fontSize = 16;
+            placeholder.fontStyle = FontStyle.Italic;
+            placeholder.color = new Color(1f, 1f, 1f, 0.3f);
+            placeholder.alignment = TextAnchor.MiddleLeft;
+            placeholder.text = defaultText;
+            placeholder.raycastTarget = false;
+
+            InputField input = obj.AddComponent<InputField>();
+            input.textComponent = inputText;
+            input.placeholder = placeholder;
+            input.characterLimit = charLimit;
+            input.text = defaultText;
+
+            return input;
+        }
     }
 }
