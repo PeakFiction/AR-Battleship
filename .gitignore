@@ -48,5 +48,8 @@ project.nuget.cache
 .DS_Store?
 ._*
 Thumbs.db
+**/bin/
+**/obj/
 *.log
-*.trx
+AR-Battleship/Assets/_Recovery/
+AR-Battleship/Assets/_Recovery.meta

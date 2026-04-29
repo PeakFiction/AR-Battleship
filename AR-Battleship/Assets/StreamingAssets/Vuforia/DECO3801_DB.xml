@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="missile_confirm_tag_3" size="0.050000 0.050521" />
+    <ImageTarget name="missile_aim_tag_2" size="0.050000 0.049752" />
+    <ImageTarget name="newboardtag" size="0.073000 0.096529" />
+  </Tracking>
+</QCARConfig>
