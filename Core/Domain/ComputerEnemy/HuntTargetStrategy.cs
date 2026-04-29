@@ -36,8 +36,11 @@ namespace ARBattleship.Core.Domain
 
         private readonly Random _random;
 
-        public HuntTargetStrategy(Random? random = null)
+        private readonly int _boardSize;
+
+        public HuntTargetStrategy(int boardSize, Random? random = null)
         {
+            _boardSize = boardSize;
             _random = random ?? new Random();
         }
 
@@ -80,7 +83,7 @@ namespace ARBattleship.Core.Domain
                 _currentHits.Add(result.Coordinate);
 
                 // If we have 2+ hits we can now lock onto an axis and prune the queue
-                if (_currentHits.Count == 2)
+                if (_currentHits.Count >= 2)
                 {
                     LockAxis();
                 }
@@ -173,22 +176,22 @@ namespace ARBattleship.Core.Domain
 
             if (isHorizontal)
             {
-                _targetQueue.Enqueue(new Coordinate(minHit.X - 1, minHit.Y));
-                _targetQueue.Enqueue(new Coordinate(maxHit.X + 1, maxHit.Y));
+                EnqueueTargetIfValid(new Coordinate(minHit.X - 1, minHit.Y));
+                EnqueueTargetIfValid(new Coordinate(maxHit.X + 1, maxHit.Y));
             }
             else
             {
-                _targetQueue.Enqueue(new Coordinate(minHit.X, minHit.Y - 1));
-                _targetQueue.Enqueue(new Coordinate(maxHit.X, maxHit.Y + 1));
+                EnqueueTargetIfValid(new Coordinate(minHit.X, minHit.Y - 1));
+                EnqueueTargetIfValid(new Coordinate(maxHit.X, maxHit.Y + 1));
             }
         }
 
         private void EnqueueAdjacentCandidates(Coordinate coord)
         {
-            _targetQueue.Enqueue(new Coordinate(coord.X - 1, coord.Y));
-            _targetQueue.Enqueue(new Coordinate(coord.X + 1, coord.Y));
-            _targetQueue.Enqueue(new Coordinate(coord.X, coord.Y - 1));
-            _targetQueue.Enqueue(new Coordinate(coord.X, coord.Y + 1));
+            EnqueueTargetIfValid(new Coordinate(coord.X - 1, coord.Y));
+            EnqueueTargetIfValid(new Coordinate(coord.X + 1, coord.Y));
+            EnqueueTargetIfValid(new Coordinate(coord.X, coord.Y - 1));
+            EnqueueTargetIfValid(new Coordinate(coord.X, coord.Y + 1));
         }
 
         private IEnumerable<Coordinate> GetUnshotCells(Board board)
@@ -212,6 +215,13 @@ namespace ARBattleship.Core.Domain
                     if (cell.IsShot)
                         _shotsFired.Add(coord);
                 }
+        }
+
+        private void EnqueueTargetIfValid(Coordinate coord)
+        {
+            if (coord.X >= 0 && coord.X < _boardSize &&
+                coord.Y >= 0 && coord.Y < _boardSize)
+                _targetQueue.Enqueue(coord);
         }
     }
 }
