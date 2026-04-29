@@ -23,7 +23,11 @@ namespace ARBattleship.Core.Application.Services
         /// <summary>
         /// Attempts to place a ship on the player's own board.
         /// </summary>
+<<<<<<< HEAD
         Result<bool, GameErrorCode> TryPlaceShip(ShipPlacementCommand command);
+=======
+        Result<PlacementOutcome, GameErrorCode> TryPlaceShip(ShipPlacementCommand command);
+>>>>>>> parent of abccf51 ([feat] Completed Networking Logic)
 
         /// <summary>
         /// Retrieves all pending game events and clears the internal buffer.
