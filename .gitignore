@@ -51,3 +51,5 @@ Thumbs.db
 **/bin/
 **/obj/
 *.log
+AR-Battleship/Assets/_Recovery/
+AR-Battleship/Assets/_Recovery.meta
