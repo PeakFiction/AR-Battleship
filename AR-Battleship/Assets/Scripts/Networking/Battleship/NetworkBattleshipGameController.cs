@@ -11,59 +11,55 @@ namespace ARBattleship.Multiplayer.Battleship
     {
         private readonly NetworkPlayerMapper _playerMapper = new();
 
-        private BattleshipGame? _game;
-		private BattleshipGameService? _gameService;
+        private BattleshipGame _game;
+        private BattleshipGameService _gameService;
+        private bool _gameOverBroadcasted = false;
 
         public override void OnNetworkSpawn()
-		{
-			if (!IsServer)
-			{
-				return;
-			}
+        {
+            if (!IsServer)
+            {
+                return;
+            }
 
-			InitialiseServerGame();
+            InitialiseServerGame();
+            RegisterExistingPlayers();
 
-			RegisterExistingPlayers();
-
-			NetworkManager.Singleton.OnClientConnectedCallback += RegisterPlayer;
-			NetworkManager.Singleton.OnClientDisconnectCallback += OnPlayerDisconnected;
-		}
-
-		private void RegisterExistingPlayers()
-		{
-			ulong hostClientId = NetworkManager.Singleton.LocalClientId;
-			RegisterPlayer(hostClientId);
-
-			foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
-			{
-				if (clientId == hostClientId)
-				{
-					continue;
-				}
-
-				RegisterPlayer(clientId);
-			}
-		}
+            NetworkManager.Singleton.OnClientConnectedCallback += RegisterPlayer;
+            NetworkManager.Singleton.OnClientDisconnectCallback += OnPlayerDisconnected;
+        }
 
         public override void OnNetworkDespawn()
-		{
-			if (IsServer && NetworkManager.Singleton != null)
-			{
-				NetworkManager.Singleton.OnClientConnectedCallback -= RegisterPlayer;
-				NetworkManager.Singleton.OnClientDisconnectCallback -= OnPlayerDisconnected;
-			}
-		}
+        {
+            if (IsServer && NetworkManager.Singleton != null)
+            {
+                NetworkManager.Singleton.OnClientConnectedCallback -= RegisterPlayer;
+                NetworkManager.Singleton.OnClientDisconnectCallback -= OnPlayerDisconnected;
+            }
+        }
 
-		private void OnPlayerDisconnected(ulong clientId)
-		{
-			Debug.Log($"Battleship player disconnected: {clientId}");
-		}
-		
         private void InitialiseServerGame()
-		{
-			_game = new BattleshipGame();
-			_gameService = new BattleshipGameService(_game);
-		}
+        {
+            _game = new BattleshipGame();
+            _gameService = new BattleshipGameService(_game);
+            _gameOverBroadcasted = false;
+        }
+
+        private void RegisterExistingPlayers()
+        {
+            ulong hostClientId = NetworkManager.Singleton.LocalClientId;
+            RegisterPlayer(hostClientId);
+
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (clientId == hostClientId)
+                {
+                    continue;
+                }
+
+                RegisterPlayer(clientId);
+            }
+        }
 
         private void RegisterPlayer(ulong clientId)
         {
@@ -74,7 +70,9 @@ namespace ARBattleship.Multiplayer.Battleship
 
             if (!registered)
             {
-                Debug.LogWarning("A third player tried to join. Battleship only supports two players.");
+                Debug.LogWarning(
+                    "A third player tried to join. Battleship only supports two players."
+                );
                 return;
             }
 
@@ -86,6 +84,11 @@ namespace ARBattleship.Multiplayer.Battleship
             );
 
             Debug.Log($"Client {clientId} assigned as Player {playerNumber}");
+        }
+
+        private void OnPlayerDisconnected(ulong clientId)
+        {
+            Debug.Log($"Battleship player disconnected: {clientId}");
         }
 
         [ClientRpc]
@@ -104,7 +107,9 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             if (!IsSpawned)
             {
-                Debug.LogWarning("Cannot place ship because the network object is not spawned.");
+                Debug.LogWarning(
+                    "Cannot place ship because the network object is not spawned."
+                );
                 return;
             }
 
@@ -163,7 +168,6 @@ namespace ARBattleship.Multiplayer.Battleship
                     senderClientId,
                     GameErrorCode.Unknown
                 );
-
                 return;
             }
 
@@ -173,11 +177,10 @@ namespace ARBattleship.Multiplayer.Battleship
                     senderClientId,
                     GameErrorCode.InvalidPlayer
                 );
-
                 return;
             }
 
-            var orientation = (Orientation)orientationValue;
+            Orientation orientation = (Orientation)orientationValue;
 
             var command = new ShipPlacementCommand(
                 playerId,
@@ -194,7 +197,6 @@ namespace ARBattleship.Multiplayer.Battleship
                     senderClientId,
                     result.Error
                 );
-
                 return;
             }
 
@@ -254,7 +256,7 @@ namespace ARBattleship.Multiplayer.Battleship
             int errorCodeValue,
             ClientRpcParams clientRpcParams = default)
         {
-            var errorCode = (GameErrorCode)errorCodeValue;
+            GameErrorCode errorCode = (GameErrorCode)errorCodeValue;
 
             NetworkBattleshipEvents.RaiseShipPlacementRejected(
                 playerNumber,
@@ -266,7 +268,9 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             if (!IsSpawned)
             {
-                Debug.LogWarning("Cannot start game because the network object is not spawned.");
+                Debug.LogWarning(
+                    "Cannot start game because the network object is not spawned."
+                );
                 return;
             }
 
@@ -286,26 +290,28 @@ namespace ARBattleship.Multiplayer.Battleship
             HandleStartGameServer(rpcParams.Receive.SenderClientId);
         }
 
-       private void HandleStartGameServer(ulong senderClientId)
-		{
-			if (_game == null)
-			{
-				Debug.LogWarning("Cannot start game because BattleshipGame is missing.");
-				return;
-			}
+        private void HandleStartGameServer(ulong senderClientId)
+        {
+            if (_game == null)
+            {
+                Debug.LogWarning(
+                    "Cannot start game because BattleshipGame is missing."
+                );
+                return;
+            }
 
-			var result = _game.StartGame();
+            var result = _game.StartGame();
 
-			if (!result.IsSuccess)
-			{
-				Debug.LogWarning($"Could not start game: {result.Error}");
-				return;
-			}
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"Could not start game: {result.Error}");
+                return;
+            }
 
-			BattleStartedClientRpc(startingPlayerNumber: 1);
+            BattleStartedClientRpc(startingPlayerNumber: 1);
 
-			ConsumeAndLogApplicationEvents();
-		}
+            ConsumeAndLogApplicationEvents();
+        }
 
         [ClientRpc]
         private void BattleStartedClientRpc(int startingPlayerNumber)
@@ -317,7 +323,9 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             if (!IsSpawned)
             {
-                Debug.LogWarning("Cannot fire shot because the network object is not spawned.");
+                Debug.LogWarning(
+                    "Cannot fire shot because the network object is not spawned."
+                );
                 return;
             }
 
@@ -359,7 +367,6 @@ namespace ARBattleship.Multiplayer.Battleship
                     y,
                     GameErrorCode.Unknown
                 );
-
                 return;
             }
 
@@ -371,7 +378,6 @@ namespace ARBattleship.Multiplayer.Battleship
                     y,
                     GameErrorCode.InvalidPlayer
                 );
-
                 return;
             }
 
@@ -390,7 +396,6 @@ namespace ARBattleship.Multiplayer.Battleship
                     y,
                     result.Error
                 );
-
                 return;
             }
 
@@ -402,6 +407,8 @@ namespace ARBattleship.Multiplayer.Battleship
                 y,
                 (int)result.Value
             );
+
+            TryBroadcastGameOver();
 
             ConsumeAndLogApplicationEvents();
         }
@@ -435,7 +442,7 @@ namespace ARBattleship.Multiplayer.Battleship
             int y,
             int shotOutcomeValue)
         {
-            var outcome = (ShotOutcome)shotOutcomeValue;
+            ShotOutcome outcome = (ShotOutcome)shotOutcomeValue;
 
             NetworkBattleshipEvents.RaiseShotResolved(
                 shooterPlayerNumber,
@@ -453,7 +460,7 @@ namespace ARBattleship.Multiplayer.Battleship
             int errorCodeValue,
             ClientRpcParams clientRpcParams = default)
         {
-            var errorCode = (GameErrorCode)errorCodeValue;
+            GameErrorCode errorCode = (GameErrorCode)errorCodeValue;
 
             NetworkBattleshipEvents.RaiseShotRejected(
                 shooterPlayerNumber,
@@ -461,6 +468,33 @@ namespace ARBattleship.Multiplayer.Battleship
                 y,
                 errorCode
             );
+        }
+
+        private void TryBroadcastGameOver()
+        {
+            if (_game == null || _gameOverBroadcasted)
+            {
+                return;
+            }
+
+            if (!_game.IsGameOver || _game.Winner == null)
+            {
+                return;
+            }
+
+            int winnerPlayerNumber = _game.Winner == PlayerId.PlayerOne ? 1 : 2;
+
+            _gameOverBroadcasted = true;
+
+            GameOverClientRpc(winnerPlayerNumber);
+
+            Debug.Log($"Game over. Winner: Player {winnerPlayerNumber}");
+        }
+
+        [ClientRpc]
+        private void GameOverClientRpc(int winnerPlayerNumber)
+        {
+            NetworkBattleshipEvents.RaiseGameOver(winnerPlayerNumber);
         }
 
         private void ConsumeAndLogApplicationEvents()

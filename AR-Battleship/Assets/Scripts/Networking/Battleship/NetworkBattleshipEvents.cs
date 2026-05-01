@@ -17,6 +17,8 @@ namespace ARBattleship.Multiplayer.Battleship
 
         public static event Action<int, int, int, GameErrorCode>? ShotRejected;
 
+		public static event Action<int> GameOver;
+
         public static void RaiseLocalPlayerAssigned(int playerNumber)
         {
             LocalPlayerAssigned?.Invoke(playerNumber);
@@ -67,5 +69,10 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             ShotRejected?.Invoke(shooterPlayerNumber, x, y, errorCode);
         }
+
+		public static void RaiseGameOver(int winnerPlayerNumber)
+		{
+			GameOver?.Invoke(winnerPlayerNumber);
+		}
     }
 }

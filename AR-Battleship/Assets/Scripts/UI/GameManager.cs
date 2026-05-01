@@ -8,6 +8,7 @@ using ARBattleship.Core.Application.Commands;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Core.Application.Events;
 using ARBattleship.Core.Application.Snapshots;
+using ARBattleship.Multiplayer.Battleship;
 
 namespace ARBattleship.Unity
 {
@@ -20,6 +21,12 @@ namespace ARBattleship.Unity
         [SerializeField] private int _boardSize = 10;
         [SerializeField] private float _aiTurnDelay = 1.0f;
 
+		[Header("Multiplayer")]
+		[SerializeField] private bool _useMultiplayer = false;
+		[SerializeField] private MultiplayerBattleshipSession _multiplayerSession;
+
+		private int _localPlayerNumber;
+
         public static event Action OnGameStarted;
         public static event Action<int, int, ShotOutcome> OnPlayerShotFired;
         public static event Action<int, int, ShotOutcome> OnEnemyShotFired;
@@ -27,9 +34,39 @@ namespace ARBattleship.Unity
         public static event Action<string> OnBattleLogEntry;
         public static event Action<int, string> OnShipSunk;
 
-        public GamePhase CurrentPhase => _game?.Phase ?? GamePhase.Setup;
+		public bool IsMultiplayer => _useMultiplayer;
 
-        public int CurrentPlayerTurn => _game?.CurrentTurn == PlayerId.PlayerTwo ? 1 : 0;
+        public GamePhase CurrentPhase
+		{
+			get
+			{
+				if (_useMultiplayer && _multiplayerSession != null)
+				{
+					return _multiplayerSession.Phase == MultiplayerBattlePhase.Battle
+						? GamePhase.InProgress
+						: GamePhase.Setup;
+				}
+
+				return _game?.Phase ?? GamePhase.Setup;
+			}
+		}
+
+		public int CurrentPlayerTurn
+		{
+			get
+			{
+				if (_useMultiplayer)
+				{
+					/*
+					* Keep returning 0 so BattleshipAR is allowed to submit the shot.
+					* The real turn validation happens on the host.
+					*/
+					return 0;
+				}
+
+				return _game?.CurrentTurn == PlayerId.PlayerTwo ? 1 : 0;
+			}
+		}
 
         private BattleshipGame _game;
         private BattleshipGameService _gameService;
@@ -45,59 +82,209 @@ namespace ARBattleship.Unity
             InitialiseServices();
         }
 
+		private void OnEnable()
+		{
+			if (!_useMultiplayer)
+			{
+				return;
+			}
+
+			NetworkBattleshipEvents.LocalPlayerAssigned += HandleLocalPlayerAssigned;
+			NetworkBattleshipEvents.BattleStarted += HandleMultiplayerBattleStarted;
+			NetworkBattleshipEvents.ShotResolved += HandleMultiplayerShotResolved;
+			NetworkBattleshipEvents.ShotRejected += HandleMultiplayerShotRejected;
+		}
+
+		private void OnDisable()
+		{
+			if (!_useMultiplayer)
+			{
+				return;
+			}
+
+			NetworkBattleshipEvents.LocalPlayerAssigned -= HandleLocalPlayerAssigned;
+			NetworkBattleshipEvents.BattleStarted -= HandleMultiplayerBattleStarted;
+			NetworkBattleshipEvents.ShotResolved -= HandleMultiplayerShotResolved;
+			NetworkBattleshipEvents.ShotRejected -= HandleMultiplayerShotRejected;
+		}
+
+		private void HandleLocalPlayerAssigned(int playerNumber)
+		{
+			_localPlayerNumber = playerNumber;
+			Debug.Log($"[GameManager Multiplayer] Local player assigned: Player {playerNumber}");
+		}
+
+		private void HandleMultiplayerBattleStarted(int startingPlayerNumber)
+		{
+			OnGameStarted?.Invoke();
+			OnBattleLogEntry?.Invoke($"Battle started. Player {startingPlayerNumber} goes first.");
+		}
+
+		private void HandleMultiplayerShotResolved(
+			int shooterPlayerNumber,
+			int x,
+			int y,
+			ShotOutcome outcome)
+		{
+			bool localPlayerFired = shooterPlayerNumber == _localPlayerNumber;
+
+			if (localPlayerFired)
+			{
+				OnPlayerShotFired?.Invoke(x, y, outcome);
+				OnBattleLogEntry?.Invoke($"You fired at ({x},{y}): {outcome}");
+			}
+			else
+			{
+				OnEnemyShotFired?.Invoke(x, y, outcome);
+				OnBattleLogEntry?.Invoke($"Opponent fired at ({x},{y}): {outcome}");
+			}
+		}
+
+		private void HandleMultiplayerShotRejected(
+			int shooterPlayerNumber,
+			int x,
+			int y,
+			GameErrorCode errorCode)
+		{
+			if (shooterPlayerNumber != _localPlayerNumber)
+			{
+				return;
+			}
+
+			OnBattleLogEntry?.Invoke($"Shot rejected at ({x},{y}): {errorCode}");
+		}
+
         public bool PlaceShip(string shipType, Coordinate startCoordinate, Orientation orientation)
-        {
-            if (_game.Phase != GamePhase.Setup) return false;
-            var command = new ShipPlacementCommand(PlayerId.PlayerOne, shipType, startCoordinate, orientation);
-            var result = _gameService.TryPlaceShip(command);
-            ProcessEvents();
-            return result.IsSuccess;
-        }
+		{
+			if (_useMultiplayer)
+			{
+				if (_multiplayerSession == null)
+				{
+					Debug.LogWarning("[GameManager] Multiplayer session is missing.");
+					return false;
+				}
+
+				_multiplayerSession.PlaceShip(
+					shipType,
+					startCoordinate.X,
+					startCoordinate.Y,
+					orientation
+				);
+
+				return true;
+			}
+
+			if (_game.Phase != GamePhase.Setup)
+			{
+				return false;
+			}
+
+			var command = new ShipPlacementCommand(
+				PlayerId.PlayerOne,
+				shipType,
+				startCoordinate,
+				orientation
+			);
+
+			var result = _gameService.TryPlaceShip(command);
+			ProcessEvents();
+
+			return result.IsSuccess;
+		}
 
         public void StartGame()
-        {
-            if (_game.Phase != GamePhase.Setup) return;
+		{
+			if (_useMultiplayer)
+			{
+				if (_multiplayerSession == null)
+				{
+					Debug.LogWarning("[GameManager] Multiplayer session is missing.");
+					return;
+				}
 
-            var placementResult = _enemyPlacementService.PlaceAllShips(_game);
-            if (!placementResult.IsSuccess)
-            {
-                Debug.LogError($"[GameManager] AI placement failed: {placementResult.Error}");
-                return;
-            }
+				_multiplayerSession.StartGame();
+				return;
+			}
 
-            var startResult = _game.StartGame();
-            if (!startResult.IsSuccess)
-            {
-                Debug.LogError($"[GameManager] StartGame failed: {startResult.Error}");
-                return;
-            }
+			if (_game.Phase != GamePhase.Setup)
+			{
+				return;
+			}
 
-            OnGameStarted?.Invoke();
-        }
+			var placementResult = _enemyPlacementService.PlaceAllShips(_game);
 
-        public ShotOutcome FireShot(int x, int y)
-        {
-            if (_game.Phase != GamePhase.InProgress) return ShotOutcome.None;
-            if (_game.CurrentTurn != PlayerId.PlayerOne) return ShotOutcome.None;
+			if (!placementResult.IsSuccess)
+			{
+				Debug.LogError($"[GameManager] AI placement failed: {placementResult.Error}");
+				return;
+			}
 
-            var command = new FireShotCommand(PlayerId.PlayerOne, new Coordinate(x, y));
-            var result = _gameService.TryFireShot(command);
-            ProcessEvents();
+			var startResult = _game.StartGame();
 
-            if (!result.IsSuccess) return ShotOutcome.None;
+			if (!startResult.IsSuccess)
+			{
+				Debug.LogError($"[GameManager] StartGame failed: {startResult.Error}");
+				return;
+			}
 
-            var outcome = result.Value;
-            OnPlayerShotFired?.Invoke(x, y, outcome);
+			OnGameStarted?.Invoke();
+		}
 
-            if (_game.IsGameOver)
-            {
-                OnGameOver?.Invoke(0);
-                return outcome;
-            }
+       public ShotOutcome FireShot(int x, int y)
+		{
+			if (_useMultiplayer)
+			{
+				if (_multiplayerSession == null)
+				{
+					Debug.LogWarning("[GameManager] Multiplayer session is missing.");
+					return ShotOutcome.None;
+				}
 
-            StartCoroutine(TakeAITurnAfterDelay(_aiTurnDelay));
-            return outcome;
-        }
+				_multiplayerSession.FireShot(x, y);
+
+				/*
+				* In multiplayer, the result is not known immediately.
+				* The host will validate the shot and send the result back through
+				* NetworkBattleshipEvents.ShotResolved.
+				*/
+				return ShotOutcome.None;
+			}
+
+			if (_game.Phase != GamePhase.InProgress)
+			{
+				return ShotOutcome.None;
+			}
+
+			if (_game.CurrentTurn != PlayerId.PlayerOne)
+			{
+				return ShotOutcome.None;
+			}
+
+			var command = new FireShotCommand(
+				PlayerId.PlayerOne,
+				new Coordinate(x, y)
+			);
+
+			var result = _gameService.TryFireShot(command);
+			ProcessEvents();
+
+			if (!result.IsSuccess)
+			{
+				return ShotOutcome.None;
+			}
+
+			var outcome = result.Value;
+			OnPlayerShotFired?.Invoke(x, y, outcome);
+
+			if (_game.IsGameOver)
+			{
+				OnGameOver?.Invoke(0);
+				return outcome;
+			}
+
+			StartCoroutine(TakeAITurnAfterDelay(_aiTurnDelay));
+			return outcome;
+		}
 
         public GameSnapshot GetSnapshot() => _gameService.GetSnapshot(PlayerId.PlayerOne);
 
