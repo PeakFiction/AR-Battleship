@@ -4,6 +4,7 @@ using ARBattleship.Core.Application.Services;
 using ARBattleship.Core.Domain;
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace ARBattleship.Multiplayer.Battleship
 {
@@ -14,6 +15,7 @@ namespace ARBattleship.Multiplayer.Battleship
         private BattleshipGame _game;
         private BattleshipGameService _gameService;
         private bool _gameOverBroadcasted = false;
+        private readonly HashSet<ulong> _readyPlayers = new();
 
         public override void OnNetworkSpawn()
         {
@@ -294,9 +296,15 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             if (_game == null)
             {
-                Debug.LogWarning(
-                    "Cannot start game because BattleshipGame is missing."
-                );
+                Debug.LogWarning("Cannot start game because BattleshipGame is missing.");
+                return;
+            }
+
+            _readyPlayers.Add(senderClientId);
+            Debug.Log($"Player {senderClientId} ready. {_readyPlayers.Count}/2 players ready.");
+
+            if (_readyPlayers.Count < 2)
+            {
                 return;
             }
 
@@ -309,7 +317,6 @@ namespace ARBattleship.Multiplayer.Battleship
             }
 
             BattleStartedClientRpc(startingPlayerNumber: 1);
-
             ConsumeAndLogApplicationEvents();
         }
 

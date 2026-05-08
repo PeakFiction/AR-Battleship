@@ -21,6 +21,8 @@ namespace ARBattleship.Unity.UI
 
         private void Awake()
         {
+            if (session == null)
+                session = FindObjectOfType<MultiplayerBattleshipSession>();
             BuildUI();
         }
 

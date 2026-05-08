@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using ARBattleship.Core.Domain;
+using ARBattleship.Core.Application.Enums;
+using ARBattleship.Multiplayer.Battleship;
 
 namespace ARBattleship.Unity.UI
 {
@@ -17,6 +19,10 @@ namespace ARBattleship.Unity.UI
         private Text orientationLabel;
         private GameObject panel;
 
+        private NetworkBattleshipGameController networkController;
+        private bool isMultiplayer;
+        private int localPlayerNumber = -1;
+
         private string[] shipTypes = new string[]
         {
             "Carrier",
@@ -28,8 +34,71 @@ namespace ARBattleship.Unity.UI
 
         private void Start()
         {
-            GameManager.Instance.ResetGame();
+            networkController = FindObjectOfType<NetworkBattleshipGameController>();
+            isMultiplayer = networkController != null;
+
+            if (!isMultiplayer)
+                GameManager.Instance.ResetGame();
+
             BuildUI();
+        }
+
+        private void OnEnable()
+        {
+            NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
+            NetworkBattleshipEvents.ShipPlacementAccepted += OnPlacementAccepted;
+            NetworkBattleshipEvents.ShipPlacementRejected += OnPlacementRejected;
+            NetworkBattleshipEvents.BattleStarted += OnBattleStarted;
+        }
+
+        private void OnDisable()
+        {
+            NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
+            NetworkBattleshipEvents.ShipPlacementAccepted -= OnPlacementAccepted;
+            NetworkBattleshipEvents.ShipPlacementRejected -= OnPlacementRejected;
+            NetworkBattleshipEvents.BattleStarted -= OnBattleStarted;
+        }
+
+        private void OnLocalPlayerAssigned(int playerNumber)
+        {
+            localPlayerNumber = playerNumber;
+        }
+
+        private void OnPlacementAccepted(int playerNumber, string shipType, int startX, int startY, int orientationValue)
+        {
+            if (playerNumber != localPlayerNumber) return;
+
+            Orientation orient = (Orientation)orientationValue;
+            ColorGridCells(shipType, new Coordinate(startX, startY), orient, Color.green);
+            placedShips.Add(shipType);
+
+            for (int i = 0; i < shipTypes.Length; i++)
+            {
+                if (shipTypes[i] == shipType)
+                {
+                    shipButtons[i].interactable = false;
+                    break;
+                }
+            }
+
+            if (placedShips.Count == shipTypes.Length)
+            {
+                networkController.RequestStartGame();
+                Debug.Log("All ships placed. Waiting for opponent...");
+            }
+        }
+
+        private void OnPlacementRejected(int playerNumber, GameErrorCode errorCode)
+        {
+            if (playerNumber != localPlayerNumber) return;
+            Debug.Log($"Ship placement rejected: {errorCode}");
+        }
+
+        private void OnBattleStarted(int startingPlayerNumber)
+        {
+            if (panel != null)
+                panel.SetActive(false);
+            Debug.Log("Battle started!");
         }
 
         private void BuildUI()
@@ -95,34 +164,41 @@ namespace ARBattleship.Unity.UI
 
         private void OnCellClicked(int x, int y)
         {
-            var startCoordinate = new Coordinate(x, y);
-            bool placed = GameManager.Instance.PlaceShip(selectedShip, startCoordinate, currentOrientation);
-
-            if (placed)
+            if (isMultiplayer)
             {
-                Debug.Log($"Placed {selectedShip} at ({x},{y}) {currentOrientation}");
-                ColorGridCells(selectedShip, startCoordinate, currentOrientation, Color.green);
-                placedShips.Add(selectedShip);
-
-                for (int i = 0; i < shipTypes.Length; i++)
-                {
-                    if (shipTypes[i] == selectedShip)
-                    {
-                        shipButtons[i].interactable = false;
-                        break;
-                    }
-                }
-
-                if (placedShips.Count == shipTypes.Length)
-                {
-                    GameManager.Instance.StartGame();
-                    panel.SetActive(false);
-                    Debug.Log("All ships placed. Game started.");
-                }
+                networkController.RequestPlaceShip(selectedShip, x, y, currentOrientation);
             }
             else
             {
-                Debug.Log($"Cannot place {selectedShip} at ({x},{y}) — invalid.");
+                var startCoordinate = new Coordinate(x, y);
+                bool placed = GameManager.Instance.PlaceShip(selectedShip, startCoordinate, currentOrientation);
+
+                if (placed)
+                {
+                    Debug.Log($"Placed {selectedShip} at ({x},{y}) {currentOrientation}");
+                    ColorGridCells(selectedShip, startCoordinate, currentOrientation, Color.green);
+                    placedShips.Add(selectedShip);
+
+                    for (int i = 0; i < shipTypes.Length; i++)
+                    {
+                        if (shipTypes[i] == selectedShip)
+                        {
+                            shipButtons[i].interactable = false;
+                            break;
+                        }
+                    }
+
+                    if (placedShips.Count == shipTypes.Length)
+                    {
+                        GameManager.Instance.StartGame();
+                        panel.SetActive(false);
+                        Debug.Log("All ships placed. Game started.");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Cannot place {selectedShip} at ({x},{y}) — invalid.");
+                }
             }
         }
 

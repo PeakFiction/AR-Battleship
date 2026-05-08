@@ -1,0 +1,12 @@
+# ninja log v5
+152	1194	7999242766578031	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	7e0458f2009948e0
+1199	1756	7999242771579388	C:/Users/Gregorius Samuel H/Desktop/AR-Battleship/AR-Battleship/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/63486y3c/obj/arm64-v8a/libswappywrapper.so	9df6f2c107a56b3
+63	3459	7999242789185712	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	25dd25e28975cced
+44	3483	7999242789363376	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	a08b2490e9825bf2
+96	3556	7999242790159534	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	a52d5db3869f89b0
+29	3562	7999242790215096	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	fa389869d905cd4b
+15	3692	7999242791584891	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	b4435faf345b9400
+127	4082	7999242795509080	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	604ef26b6a4ff617
+79	4144	7999242796111642	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	4a4b15cdd57ef908
+1	4374	7999242798393124	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	5045ab8a9801f60c
+4375	4554	7999242800246277	C:/Users/Gregorius Samuel H/Desktop/AR-Battleship/AR-Battleship/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/63486y3c/obj/arm64-v8a/libgame.so	2112a6d766f492d7

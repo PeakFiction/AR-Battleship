@@ -156,6 +156,7 @@ namespace ARBattleship.Unity
 
         public bool PlaceShip(string shipType, Coordinate startCoordinate, Orientation orientation)
 		{
+			EnsureMultiplayerSession();
 			if (_useMultiplayer)
 			{
 				if (_multiplayerSession == null)
@@ -194,6 +195,7 @@ namespace ARBattleship.Unity
 
         public void StartGame()
 		{
+			EnsureMultiplayerSession();
 			if (_useMultiplayer)
 			{
 				if (_multiplayerSession == null)
@@ -232,6 +234,7 @@ namespace ARBattleship.Unity
 
        public ShotOutcome FireShot(int x, int y)
 		{
+			EnsureMultiplayerSession();
 			if (_useMultiplayer)
 			{
 				if (_multiplayerSession == null)
@@ -373,5 +376,11 @@ namespace ARBattleship.Unity
             ShotResult.Sunk => ShotOutcome.Sunk,
             _               => ShotOutcome.Miss
         };
+
+		private void EnsureMultiplayerSession()
+		{
+			if (_useMultiplayer && _multiplayerSession == null)
+				_multiplayerSession = FindObjectOfType<MultiplayerBattleshipSession>();
+		}
     }
 }
