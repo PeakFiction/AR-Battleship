@@ -1,7 +1,5 @@
-using System.Linq;
 using UnityEngine;
 using Vuforia;
-using ARBattleship.Core.Domain;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Unity;
 
@@ -26,7 +24,6 @@ public class BattleshipAR : MonoBehaviour
     public Color hoverColor = Color.yellow;
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
-    public Color sunkColor = Color.black;
     public Color labelColor = Color.white;
 
     private bool boardTracked = false;
@@ -36,6 +33,7 @@ public class BattleshipAR : MonoBehaviour
     private bool smoothingInitialized = false;
 
     private GameObject[,] cellObjects;
+    private bool[,] cellFired;
     private GameObject hoverIndicator;
     private GameObject gridBorder;
     private GameObject[] columnLabels;
@@ -49,9 +47,22 @@ public class BattleshipAR : MonoBehaviour
     private Vector3 smoothedLocalPos;
     private float smoothSpeed = 5f;
 
+    bool IsMirrored
+    {
+        get
+        {
+#if UNITY_EDITOR
+            return true;
+#else
+            return false;
+#endif
+        }
+    }
+
     float CellX(int col)
     {
-        return ((gridCols - 1 - col) * cellSize) + (cellSize / 2f) - (boardWidth / 2f) + offsetX;
+        int c = IsMirrored ? (gridCols - 1 - col) : col;
+        return (c * cellSize) + (cellSize / 2f) - (boardWidth / 2f) + offsetX;
     }
 
     float CellZ(int row)
@@ -61,6 +72,7 @@ public class BattleshipAR : MonoBehaviour
 
     void Start()
     {
+        cellFired = new bool[gridCols, gridRows];
         cellObjects = new GameObject[gridCols, gridRows];
 
         boardWidth = gridCols * cellSize;
@@ -78,55 +90,27 @@ public class BattleshipAR : MonoBehaviour
     void OnEnable()
     {
         GameManager.OnPlayerShotFired += HandlePlayerShot;
-        GameManager.OnEnemyShotFired += HandleEnemyShot;
         GameManager.OnGameOver += HandleGameOver;
     }
 
     void OnDisable()
     {
         GameManager.OnPlayerShotFired -= HandlePlayerShot;
-        GameManager.OnEnemyShotFired -= HandleEnemyShot;
         GameManager.OnGameOver -= HandleGameOver;
     }
 
-    // ShotResult replaced with ShotOutcome from application layer
-    void HandlePlayerShot(int x, int y, ShotOutcome outcome)
+    void HandlePlayerShot(int x, int y, ShotOutcome result)
     {
+        cellFired[x, y] = true;
         hoverIndicator.SetActive(false);
         lockedCell = new Vector2Int(-1, -1);
 
-        switch (outcome)
-        {
-            case ShotOutcome.Miss:
-                SetCellColor(x, y, missColor, 0.7f);
-                break;
-            case ShotOutcome.Hit:
-                SetCellColor(x, y, hitColor, 0.7f);
-                break;
-            case ShotOutcome.Sunk:
-                SetCellColor(x, y, sunkColor, 0.7f);
-                break;
-        }
+        if (result == ShotOutcome.Miss)
+            SetCellColor(x, y, missColor, 0.7f);
+        else if (result == ShotOutcome.Hit || result == ShotOutcome.Sunk)
+            SetCellColor(x, y, hitColor, 0.7f);
 
-        Debug.Log($"[AR] Player shot at ({x},{y}) -> {outcome}");
-    }
-
-    // Added: react to enemy shots on player's own board
-    void HandleEnemyShot(int x, int y, ShotOutcome outcome)
-    {
-        // Enemy fires at PlayerOne's board — update own board AR visuals
-        switch (outcome)
-        {
-            case ShotOutcome.Miss:
-                // Optionally show a miss marker on own board
-                break;
-            case ShotOutcome.Hit:
-            case ShotOutcome.Sunk:
-                // Optionally show a hit/sunk marker on own board
-                break;
-        }
-
-        Debug.Log($"[AR] Enemy shot at ({x},{y}) -> {outcome}");
+        Debug.Log($"[AR] Shot at ({x},{y}) -> {result}");
     }
 
     void HandleGameOver(int winnerIndex)
@@ -179,6 +163,8 @@ public class BattleshipAR : MonoBehaviour
         float halfW = boardWidth / 2f;
         float halfH = boardHeight / 2f;
         float labelOffset = cellSize * 0.7f;
+        float labelYRot = IsMirrored ? 180f : 0f;
+        float labelXScale = IsMirrored ? -1f : 1f;
 
         columnLabels = new GameObject[gridCols];
         for (int col = 0; col < gridCols; col++)
@@ -189,8 +175,8 @@ public class BattleshipAR : MonoBehaviour
             float x = CellX(col);
             float z = halfH + offsetZ + labelOffset;
             label.transform.localPosition = new Vector3(x, 0.002f, z);
-            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            label.transform.localScale = new Vector3(-1f, 1f, 1f);
+            label.transform.localRotation = Quaternion.Euler(90f, labelYRot, 0f);
+            label.transform.localScale = new Vector3(labelXScale, 1f, 1f);
 
             TextMesh tm = label.AddComponent<TextMesh>();
             tm.text = ((char)('A' + col)).ToString();
@@ -210,11 +196,11 @@ public class BattleshipAR : MonoBehaviour
             GameObject label = new GameObject($"RowLabel_{row}");
             label.transform.SetParent(boardObserver.transform);
 
-            float x = halfW + offsetX + labelOffset;
+            float x = IsMirrored ? (halfW + offsetX + labelOffset) : (-halfW + offsetX - labelOffset);
             float z = CellZ(row);
             label.transform.localPosition = new Vector3(x, 0.002f, z);
-            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            label.transform.localScale = new Vector3(-1f, 1f, 1f);
+            label.transform.localRotation = Quaternion.Euler(90f, labelYRot, 0f);
+            label.transform.localScale = new Vector3(labelXScale, 1f, 1f);
 
             TextMesh tm = label.AddComponent<TextMesh>();
             tm.text = (row + 1).ToString();
@@ -260,19 +246,6 @@ public class BattleshipAR : MonoBehaviour
         rend.material.color = c;
     }
 
-    /// <summary>
-    /// Returns true if the given cell has already been fired at,
-    /// using GameSnapshot as the source of truth instead of a local bool array.
-    /// </summary>
-    bool IsCellAlreadyFired(int col, int row)
-    {
-        if (GameManager.Instance == null) return false;
-        var snapshot = GameManager.Instance.GetSnapshot();
-        var cell = snapshot.PlayerTwo.Cells
-            .FirstOrDefault(c => c.X == col && c.Y == row);
-        return cell != null && cell.State != CellViewState.Unknown;
-    }
-
     void OnBoardStatusChanged(ObserverBehaviour b, TargetStatus status)
     {
         boardTracked = status.Status == Status.TRACKED
@@ -300,7 +273,9 @@ public class BattleshipAR : MonoBehaviour
     {
         aimTracked = status.Status == Status.TRACKED;
         if (!aimTracked)
+        {
             smoothingInitialized = false;
+        }
     }
 
     void OnConfirmStatusChanged(ObserverBehaviour b, TargetStatus status)
@@ -308,7 +283,9 @@ public class BattleshipAR : MonoBehaviour
         bool wasTracked = confirmTracked;
         confirmTracked = status.Status == Status.TRACKED;
         if (!wasTracked && confirmTracked)
+        {
             confirmJustDetected = true;
+        }
     }
 
     Vector2Int GetCellFromObserver(ObserverBehaviour observer)
@@ -334,14 +311,22 @@ public class BattleshipAR : MonoBehaviour
         float gridLocalX = localPos.x - offsetX;
         float gridLocalZ = localPos.z - offsetZ;
 
-        int col = (gridCols - 1) - Mathf.FloorToInt((gridLocalX + halfW) / cellSize);
+        int col;
+        if (IsMirrored)
+            col = (gridCols - 1) - Mathf.FloorToInt((gridLocalX + halfW) / cellSize);
+        else
+            col = Mathf.FloorToInt((gridLocalX + halfW) / cellSize);
+
         int row = (gridRows - 1) - Mathf.FloorToInt((gridLocalZ + halfH) / cellSize);
 
         bool valid = col >= 0 && col < gridCols
                   && row >= 0 && row < gridRows
                   && Mathf.Abs(localPos.y) < 5.0f;
 
-        return valid ? new Vector2Int(col, row) : new Vector2Int(-1, -1);
+        if (valid)
+            return new Vector2Int(col, row);
+        else
+            return new Vector2Int(-1, -1);
     }
 
     void Update()
@@ -356,7 +341,7 @@ public class BattleshipAR : MonoBehaviour
         {
             Vector2Int cell = GetCellFromObserver(aimObserver);
 
-            if (cell.x >= 0 && !IsCellAlreadyFired(cell.x, cell.y))
+            if (cell.x >= 0 && !cellFired[cell.x, cell.y])
             {
                 currentHoverCell = cell;
                 lockedCell = cell;
@@ -369,7 +354,7 @@ public class BattleshipAR : MonoBehaviour
                 c.a = 0.5f;
                 hRend.material.color = c;
             }
-            else if (cell.x >= 0 && IsCellAlreadyFired(cell.x, cell.y))
+            else if (cell.x >= 0 && cellFired[cell.x, cell.y])
             {
                 hoverIndicator.SetActive(false);
                 lockedCell = new Vector2Int(-1, -1);
@@ -404,15 +389,12 @@ public class BattleshipAR : MonoBehaviour
     void TryConfirmShot()
     {
         if (lockedCell.x < 0 || lockedCell.y < 0) return;
-
-        // GamePhase.Playing replaced with GamePhase.InProgress
-        if (GameManager.Instance.CurrentPhase != GamePhase.InProgress) return;
         if (GameManager.Instance.CurrentPlayerTurn != 0) return;
 
-        // FireShot now returns ShotOutcome — ShotResult.AlreadyFired
-        // replaced with ShotOutcome.None which covers all invalid shots
-        ShotOutcome outcome = GameManager.Instance.FireShot(lockedCell.x, lockedCell.y);
-        if (outcome == ShotOutcome.None)
-            Debug.Log($"[AR] Shot at ({lockedCell.x},{lockedCell.y}) was invalid or already fired.");
+        ShotOutcome result = GameManager.Instance.FireShot(lockedCell.x, lockedCell.y);
+        if (result == ShotOutcome.None)
+        {
+            Debug.Log($"[AR] Shot at ({lockedCell.x},{lockedCell.y}) not processed.");
+        }
     }
 }
