@@ -1,5 +1,5 @@
 using System;
-using TMPro;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
@@ -8,310 +8,333 @@ using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class RelayManager : MonoBehaviour
 {
-    public static RelayManager Instance { get; private set; }
+	public static RelayManager Instance { get; private set; }
 
-    [Header("UI")]
-    [SerializeField] private Button hostButton;
-    [SerializeField] private Button joinButton;
-    [SerializeField] private Button backButton;
-    [SerializeField] private TMP_InputField joinInput;
-    [SerializeField] private TextMeshProUGUI codeText;
+	[Header("Relay Settings")]
+	[SerializeField] private int maxConnections = 1;
+	[SerializeField] private string connectionType = "dtls";
 
-    [Header("Scenes")]
-    [SerializeField] private string backSceneName = "2LobbyScreen";
-    [SerializeField] private string multiplayerSceneName = "5Gameplay";
-    // If you want players to go to a multiplayer lobby/setup scene first,
-    // change this to "3LobbySetup" instead.
+	[Header("Scene Names")]
+	[SerializeField] private string multiplayerMenuSceneName = "2LobbyScreen";
+	[SerializeField] private string createLobbySceneName = "3LobbySetup";
+	[SerializeField] private string joinLobbySceneName = "4JoinLobby";
+	[SerializeField] private string gameplaySceneName = "6MultiplayerGameplay";
 
-    private bool servicesReady = false;
-    private bool sceneTransitionStarted = false;
+	public string JoinCode { get; private set; }
+	public bool IsHost { get; private set; }
+	public bool IsClient { get; private set; }
 
-    private async void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+	public event Action<string> OnStatusChanged;
+	public event Action<string> OnJoinCodeChanged;
+	public event Action<int, int> OnClientCountChanged;
+	public event Action<bool> OnCanStartGameChanged;
 
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+	private bool servicesInitialized;
+	private bool callbacksRegistered;
 
-        if (NetworkManager.Singleton != null)
-        {
-            DontDestroyOnLoad(NetworkManager.Singleton.gameObject);
-        }
+	private int ExpectedPlayerCount => maxConnections + 1;
 
-        await InitializeUnityServices();
-    }
+	private void Awake()
+	{
+		if (Instance != null && Instance != this)
+		{
+			Destroy(gameObject);
+			return;
+		}
 
-    private void Start()
-    {
-        if (hostButton != null)
-        {
-            hostButton.onClick.RemoveAllListeners();
-            hostButton.onClick.AddListener(CreateLobby);
-        }
+		Instance = this;
+		DontDestroyOnLoad(gameObject);
+	}
 
-        if (joinButton != null)
-        {
-            joinButton.onClick.RemoveAllListeners();
-            joinButton.onClick.AddListener(JoinLobbyFromInput);
-        }
+	private void OnDestroy()
+	{
+		UnregisterNetworkCallbacks();
 
-        if (backButton != null)
-        {
-            backButton.onClick.RemoveAllListeners();
-            backButton.onClick.AddListener(BackToMenu);
-        }
+		if (Instance == this)
+		{
+			Instance = null;
+		}
+	}
 
-        RegisterNetworkCallbacks();
+	public void LoadCreateLobbyScene()
+	{
+		SceneManager.LoadScene(createLobbySceneName);
+	}
 
-        if (codeText != null && string.IsNullOrWhiteSpace(codeText.text))
-        {
-            codeText.text = "Code:";
-        }
-    }
+	public void LoadJoinLobbyScene()
+	{
+		SceneManager.LoadScene(joinLobbySceneName);
+	}
 
-    private async System.Threading.Tasks.Task InitializeUnityServices()
-    {
-        try
-        {
-            await UnityServices.InitializeAsync();
+	public void LoadMultiplayerMenuScene()
+	{
+		SceneManager.LoadScene(multiplayerMenuSceneName);
+	}
 
-            if (!AuthenticationService.Instance.IsSignedIn)
-            {
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            }
+	private async Task EnsureUnityServicesInitializedAsync()
+	{
+		if (servicesInitialized)
+		{
+			return;
+		}
 
-            servicesReady = true;
-            Debug.Log("Unity Services ready.");
-        }
-        catch (Exception e)
-        {
-            servicesReady = false;
-            Debug.LogError("Failed to initialize Unity Services.");
-            Debug.LogException(e);
-        }
-    }
+		await UnityServices.InitializeAsync();
 
-    private void RegisterNetworkCallbacks()
-    {
-        if (NetworkManager.Singleton == null)
-        {
-            Debug.LogError("NetworkManager.Singleton not found.");
-            return;
-        }
+		if (!AuthenticationService.Instance.IsSignedIn)
+		{
+			await AuthenticationService.Instance.SignInAnonymouslyAsync();
+		}
 
-        NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+		servicesInitialized = true;
+	}
 
-        NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
-        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
-    }
+	public async Task<bool> CreateRelayAsync()
+	{
+		try
+		{
+			await PrepareForNewSessionAsync();
 
-    private void OnDestroy()
-    {
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
-        }
-    }
+			OnStatusChanged?.Invoke("Creating lobby...");
 
-    public async void CreateLobby()
-    {
-        if (!servicesReady)
-        {
-            Debug.LogWarning("Services are not ready yet.");
-            return;
-        }
+			await EnsureUnityServicesInitializedAsync();
 
-        if (NetworkManager.Singleton == null)
-        {
-            Debug.LogError("NetworkManager.Singleton is missing.");
-            return;
-        }
+			Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections);
 
-        if (NetworkManager.Singleton.IsListening)
-        {
-            Debug.LogWarning("A network session is already running.");
-            return;
-        }
+			UnityTransport transport = GetUnityTransport();
 
-        try
-        {
-            SetButtonsInteractable(false);
+			transport.SetRelayServerData(
+				AllocationUtils.ToRelayServerData(allocation, connectionType));
 
-            // For Battleship 1v1, you only need one joining player.
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(1);
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+			JoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-            if (codeText != null)
-            {
-                codeText.text = "Code: " + joinCode;
-            }
+			bool started = NetworkManager.Singleton.StartHost();
 
-            UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-            transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
+			if (!started)
+			{
+				OnStatusChanged?.Invoke("Failed to start host.");
+				return false;
+			}
 
-            bool started = NetworkManager.Singleton.StartHost();
+			IsHost = true;
+			IsClient = false;
 
-            if (!started)
-            {
-                Debug.LogError("Failed to start host.");
-                SetButtonsInteractable(true);
-                return;
-            }
+			RegisterNetworkCallbacks();
+			UpdateClientCount();
 
-            Debug.Log("Host started. Waiting for another player to join...");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("CreateLobby failed.");
-            Debug.LogException(e);
-            SetButtonsInteractable(true);
-        }
-    }
+			OnJoinCodeChanged?.Invoke(JoinCode);
+			OnStatusChanged?.Invoke("Lobby created. Share this code with the other player.");
 
-    public void JoinLobbyFromInput()
-    {
-        string joinCode = joinInput != null ? joinInput.text.Trim() : "";
-        JoinLobby(joinCode);
-    }
+			return true;
+		}
+		catch (Exception exception)
+		{
+			OnStatusChanged?.Invoke($"Failed to create lobby: {exception.Message}");
+			Debug.LogException(exception);
+			return false;
+		}
+	}
 
-    public async void JoinLobby(string joinCode)
-    {
-        if (!servicesReady)
-        {
-            Debug.LogWarning("Services are not ready yet.");
-            return;
-        }
+	public async Task<bool> JoinRelayAsync(string code)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(code))
+			{
+				OnStatusChanged?.Invoke("Please enter a join code.");
+				return false;
+			}
 
-        if (string.IsNullOrWhiteSpace(joinCode))
-        {
-            Debug.LogWarning("Join code is empty.");
-            return;
-        }
+			await PrepareForNewSessionAsync();
 
-        if (NetworkManager.Singleton == null)
-        {
-            Debug.LogError("NetworkManager.Singleton is missing.");
-            return;
-        }
+			OnStatusChanged?.Invoke("Joining lobby...");
 
-        if (NetworkManager.Singleton.IsListening)
-        {
-            Debug.LogWarning("A network session is already running.");
-            return;
-        }
+			await EnsureUnityServicesInitializedAsync();
 
-        try
-        {
-            SetButtonsInteractable(false);
+			JoinAllocation joinAllocation =
+				await RelayService.Instance.JoinAllocationAsync(code.Trim().ToUpper());
 
-            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+			UnityTransport transport = GetUnityTransport();
 
-            UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-            transport.SetRelayServerData(AllocationUtils.ToRelayServerData(joinAllocation, "dtls"));
+			transport.SetRelayServerData(
+				AllocationUtils.ToRelayServerData(joinAllocation, connectionType));
 
-            bool started = NetworkManager.Singleton.StartClient();
+			bool started = NetworkManager.Singleton.StartClient();
 
-            if (!started)
-            {
-                Debug.LogError("Failed to start client.");
-                SetButtonsInteractable(true);
-                return;
-            }
+			if (!started)
+			{
+				OnStatusChanged?.Invoke("Failed to start client.");
+				return false;
+			}
 
-            Debug.Log("Client started. Waiting for host to move both players...");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("JoinLobby failed.");
-            Debug.LogException(e);
-            SetButtonsInteractable(true);
-        }
-    }
+			IsHost = false;
+			IsClient = true;
+			JoinCode = code.Trim().ToUpper();
 
-    private void OnClientConnected(ulong clientId)
-    {
-        Debug.Log($"Client connected: {clientId}");
+			RegisterNetworkCallbacks();
 
-        if (NetworkManager.Singleton == null)
-        {
-            return;
-        }
+			OnJoinCodeChanged?.Invoke(JoinCode);
+			OnStatusChanged?.Invoke("Joined lobby. Waiting for host to start the game.");
 
-        // Only the host/server should trigger scene changes.
-        if (!NetworkManager.Singleton.IsServer)
-        {
-            return;
-        }
+			return true;
+		}
+		catch (Exception exception)
+		{
+			OnStatusChanged?.Invoke($"Failed to join lobby: {exception.Message}");
+			Debug.LogException(exception);
+			return false;
+		}
+	}
 
-        // Prevent double scene loads.
-        if (sceneTransitionStarted)
-        {
-            return;
-        }
+	public async Task<bool> RefreshRelayCodeAsync()
+	{
+		OnStatusChanged?.Invoke("Refreshing lobby code...");
 
-        // Host + 1 client = 2 total players for Battleship.
-        if (NetworkManager.Singleton.ConnectedClientsIds.Count == 2)
-        {
-            sceneTransitionStarted = true;
-            Debug.Log("Two players connected. Loading multiplayer scene...");
+		ShutdownRelaySession();
 
-            NetworkManager.Singleton.SceneManager.LoadScene(
-                multiplayerSceneName,
-                LoadSceneMode.Single
-            );
-        }
-    }
+		await Task.Delay(250);
 
-    private void OnClientDisconnected(ulong clientId)
-    {
-        Debug.Log($"Client disconnected: {clientId}");
+		return await CreateRelayAsync();
+	}
 
-        sceneTransitionStarted = false;
-        SetButtonsInteractable(true);
+	public void StartGameplayAsHost()
+	{
+		if (!IsHost || NetworkManager.Singleton == null)
+		{
+			OnStatusChanged?.Invoke("Only the host can start the game.");
+			return;
+		}
 
-        if (codeText != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost)
-        {
-            codeText.text = "Code: waiting for player...";
-        }
-    }
+		if (!NetworkManager.Singleton.IsListening)
+		{
+			OnStatusChanged?.Invoke("Network session is not active.");
+			return;
+		}
 
-    public void BackToMenu()
-    {
-        // If a network session is active, stop it first.
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-        {
-            NetworkManager.Singleton.Shutdown();
-        }
+		int connectedCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
 
-        sceneTransitionStarted = false;
-        SetButtonsInteractable(true);
+		if (connectedCount < ExpectedPlayerCount)
+		{
+			OnStatusChanged?.Invoke("Waiting for another player to join.");
+			return;
+		}
 
-        if (joinInput != null)
-        {
-            joinInput.text = "";
-        }
+		OnStatusChanged?.Invoke("Starting game...");
 
-        if (codeText != null)
-        {
-            codeText.text = "Code:";
-        }
+		NetworkManager.Singleton.SceneManager.LoadScene(
+			gameplaySceneName,
+			LoadSceneMode.Single);
+	}
 
-        SceneManager.LoadScene(backSceneName);
-    }
+	public void ShutdownRelaySession()
+	{
+		UnregisterNetworkCallbacks();
 
-    private void SetButtonsInteractable(bool interactable)
-    {
-        if (hostButton != null) hostButton.interactable = interactable;
-        if (joinButton != null) joinButton.interactable = interactable;
-    }
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+		{
+			NetworkManager.Singleton.Shutdown();
+		}
+
+		JoinCode = null;
+		IsHost = false;
+		IsClient = false;
+
+		OnJoinCodeChanged?.Invoke("");
+		OnClientCountChanged?.Invoke(0, ExpectedPlayerCount);
+		OnCanStartGameChanged?.Invoke(false);
+		OnStatusChanged?.Invoke("Relay session closed.");
+	}
+
+	private async Task PrepareForNewSessionAsync()
+	{
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+		{
+			ShutdownRelaySession();
+			await Task.Delay(250);
+		}
+	}
+
+	private UnityTransport GetUnityTransport()
+	{
+		if (NetworkManager.Singleton == null)
+		{
+			throw new InvalidOperationException("NetworkManager.Singleton was not found.");
+		}
+
+		UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+
+		if (transport == null)
+		{
+			throw new InvalidOperationException("UnityTransport was not found on the NetworkManager object.");
+		}
+
+		return transport;
+	}
+
+	private void RegisterNetworkCallbacks()
+	{
+		if (NetworkManager.Singleton == null || callbacksRegistered)
+		{
+			return;
+		}
+
+		NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
+		NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
+
+		callbacksRegistered = true;
+	}
+
+	private void UnregisterNetworkCallbacks()
+	{
+		if (NetworkManager.Singleton == null || !callbacksRegistered)
+		{
+			return;
+		}
+
+		NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
+		NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnected;
+
+		callbacksRegistered = false;
+	}
+
+	private void HandleClientConnected(ulong clientId)
+	{
+		UpdateClientCount();
+
+		if (IsHost)
+		{
+			OnStatusChanged?.Invoke("A player connected.");
+		}
+	}
+
+	private void HandleClientDisconnected(ulong clientId)
+	{
+		UpdateClientCount();
+
+		if (IsHost)
+		{
+			OnStatusChanged?.Invoke("A player disconnected.");
+		}
+		else
+		{
+			OnStatusChanged?.Invoke("Disconnected from host.");
+		}
+	}
+
+	private void UpdateClientCount()
+	{
+		int connectedCount = 0;
+
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+		{
+			connectedCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
+		}
+
+		bool canStartGame = IsHost && connectedCount >= ExpectedPlayerCount;
+
+		OnClientCountChanged?.Invoke(connectedCount, ExpectedPlayerCount);
+		OnCanStartGameChanged?.Invoke(canStartGame);
+	}
 }
