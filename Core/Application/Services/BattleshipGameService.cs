@@ -67,7 +67,7 @@ namespace ARBattleship.Core.Application.Services
             if (fireResult.IsSunk)
                 AddEvent(new AnnouncementEvent($"The {fireResult.ShipName ?? "Ship"} has been sunk!"));
 
-            AddEvent(new ShotFiredEvent(command.PlayerId, command.Coordinate.X, command.Coordinate.Y, outcome));
+            AddEvent(new ShotFiredEvent(command.PlayerId, command.Coordinate.X, command.Coordinate.Y, outcome, fireResult.HitSegmentIndex));
             AddEvent(new TurnChangedEvent(_game.CurrentTurn));
 
             if (_game.IsGameOver)
@@ -92,7 +92,7 @@ namespace ARBattleship.Core.Application.Services
             Ship shipToPlace;
             try
             {
-                shipToPlace = Ship.CreateFromType(command.ShipType, ShipId.New(), positions);
+                shipToPlace = Ship.CreateFromType(command.ShipType, ShipId.New(), positions, command.Orientation);
             }
             catch (ArgumentException)
             {

@@ -116,10 +116,10 @@ namespace ARBattleship.Core.Domain
             // We pass ship.ShipType ("Carrier", "Destroyer", etc.) so the UI knows exactly what was hit
             if (ship.IsSunk)
             {
-                return Result<FireResult>.Success(FireResult.Sunk(coord, ship.Id, ship.ShipType));
+                return Result<FireResult>.Success(FireResult.Sunk(coord, ship.Id, ship.ShipType, ship.GetSegmentIndex(coord)));
             }
 
-            return Result<FireResult>.Success(FireResult.Hit(coord, ship.Id, ship.ShipType));
+            return Result<FireResult>.Success(FireResult.Hit(coord, ship.Id, ship.ShipType, ship.GetSegmentIndex(coord)));
         }
 
         public bool AllShipsSunk() => _ships.Values.All(ship => ship.IsSunk);
