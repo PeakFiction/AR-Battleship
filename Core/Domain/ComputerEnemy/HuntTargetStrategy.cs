@@ -103,14 +103,15 @@ namespace ARBattleship.Core.Domain
 
         private Coordinate SelectHuntMove(Board opponentBoard)
         {
-            // Build a list of unshot cells that match our parity (checkerboard pattern)
             var candidates = GetUnshotCells(opponentBoard)
                 .Where(c => (c.X + c.Y) % 2 == 0)
                 .ToList();
 
-            // Fallback: if parity cells are exhausted, try all unshot cells
             if (candidates.Count == 0)
                 candidates = GetUnshotCells(opponentBoard).ToList();
+
+            if (candidates.Count == 0)
+                throw new InvalidOperationException("No valid cells remaining to fire at.");
 
             return candidates[_random.Next(candidates.Count)];
         }
@@ -118,20 +119,19 @@ namespace ARBattleship.Core.Domain
         private Coordinate SelectTargetMove(Board opponentBoard)
         {
             // Drain stale entries from the queue (already shot or out of bounds)
-            while (_targetQueue.Count > 0)
+        while (_targetQueue.Count > 0)
+        {
+            var candidate = _targetQueue.Peek();
+
+            if (!IsInBounds(candidate) || _shotsFired.Contains(candidate))
             {
-                var candidate = _targetQueue.Peek();
-
-                if (_shotsFired.Contains(candidate))
-                {
-                    _targetQueue.Dequeue();
-                    continue;
-                }
-
-                // Valid unshot candidate
                 _targetQueue.Dequeue();
-                return candidate;
+                continue;
             }
+
+            _targetQueue.Dequeue();
+            return candidate;
+        }
 
             // Target queue exhausted (can happen after misses on both ends of an axis).
             // This means we hit a ship but lost track — fall back to hunt.
@@ -176,22 +176,32 @@ namespace ARBattleship.Core.Domain
 
             if (isHorizontal)
             {
-                EnqueueTargetIfValid(new Coordinate(minHit.X - 1, minHit.Y));
-                EnqueueTargetIfValid(new Coordinate(maxHit.X + 1, maxHit.Y));
+                var left = new Coordinate(minHit.X - 1, minHit.Y);
+                var right = new Coordinate(maxHit.X + 1, maxHit.Y);
+                if (IsInBounds(left)) _targetQueue.Enqueue(left);
+                if (IsInBounds(right)) _targetQueue.Enqueue(right);
             }
             else
             {
-                EnqueueTargetIfValid(new Coordinate(minHit.X, minHit.Y - 1));
-                EnqueueTargetIfValid(new Coordinate(maxHit.X, maxHit.Y + 1));
+                var above = new Coordinate(minHit.X, minHit.Y - 1);
+                var below = new Coordinate(maxHit.X, maxHit.Y + 1);
+                if (IsInBounds(above)) _targetQueue.Enqueue(above);
+                if (IsInBounds(below)) _targetQueue.Enqueue(below);
             }
         }
 
         private void EnqueueAdjacentCandidates(Coordinate coord)
         {
-            EnqueueTargetIfValid(new Coordinate(coord.X - 1, coord.Y));
-            EnqueueTargetIfValid(new Coordinate(coord.X + 1, coord.Y));
-            EnqueueTargetIfValid(new Coordinate(coord.X, coord.Y - 1));
-            EnqueueTargetIfValid(new Coordinate(coord.X, coord.Y + 1));
+            var candidates = new[]
+            {
+                new Coordinate(coord.X - 1, coord.Y),
+                new Coordinate(coord.X + 1, coord.Y),
+                new Coordinate(coord.X, coord.Y - 1),
+                new Coordinate(coord.X, coord.Y + 1)
+            };
+
+            foreach (var c in candidates.Where(IsInBounds))
+                _targetQueue.Enqueue(c);
         }
 
         private IEnumerable<Coordinate> GetUnshotCells(Board board)
@@ -223,5 +233,8 @@ namespace ARBattleship.Core.Domain
                 coord.Y >= 0 && coord.Y < _boardSize)
                 _targetQueue.Enqueue(coord);
         }
+
+        private bool IsInBounds(Coordinate c) =>
+            c.X >= 0 && c.X < _boardSize && c.Y >= 0 && c.Y < _boardSize;
     }
 }
