@@ -52,21 +52,50 @@ namespace ARBattleship.Core.Domain
             return true;
         }
 
+        private bool IsAdjacentToExistingShip(IEnumerable<Coordinate> positions)
+        {
+            foreach (var pos in positions)
+            {
+                var neighbours = new[]
+                {
+                    new Coordinate(pos.X - 1, pos.Y),
+                    new Coordinate(pos.X + 1, pos.Y),
+                    new Coordinate(pos.X, pos.Y - 1),
+                    new Coordinate(pos.X, pos.Y + 1),
+                    new Coordinate(pos.X - 1, pos.Y - 1), // NW
+                    new Coordinate(pos.X + 1, pos.Y - 1), // NE
+                    new Coordinate(pos.X - 1, pos.Y + 1), // SW
+                    new Coordinate(pos.X + 1, pos.Y + 1), // SE
+                };
+
+                foreach (var neighbour in neighbours)
+                {
+                    if (IsWithinBounds(neighbour) && _cells[neighbour].HasShip)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         public Result<bool> PlaceShip(Ship ship)
         {
             // 1. Boundary & Overlap Check
             if (!CanPlaceShip(ship.Positions))
                 return Result<bool>.Failure("Invalid placement: Ship is out of bounds or overlaps another ship.");
 
-            // 2. Unique ID Check
+            // 2. Adjacency Check
+            if (IsAdjacentToExistingShip(ship.Positions))
+                return Result<bool>.Failure("Invalid placement: Ships cannot be placed adjacent to each other.");
+            
+            // 3. Unique ID Check
             if (_ships.ContainsKey(ship.Id))
                 return Result<bool>.Failure("Ship with this ID already exists on the board.");
 
-            // 3. Business Rule: Only one of each ship type allowed
+            // 4. Business Rule: Only one of each ship type allowed
             if (_ships.Values.Any(s => s.ShipType == ship.ShipType))
                 return Result<bool>.Failure($"A {ship.ShipType} has already been placed.");
 
-            // 4. Commit to Board State
+            // 5. Commit to Board State
             _ships[ship.Id] = ship;
 
             foreach (var pos in ship.Positions)
