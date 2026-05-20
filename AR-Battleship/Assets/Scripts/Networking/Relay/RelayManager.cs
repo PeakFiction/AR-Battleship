@@ -125,7 +125,7 @@ public class RelayManager : MonoBehaviour
 			UpdateClientCount();
 
 			OnJoinCodeChanged?.Invoke(JoinCode);
-			OnStatusChanged?.Invoke("Lobby created. Share this code with the other player.");
+			OnStatusChanged?.Invoke("AUTH KEY SENT");
 
 			return true;
 		}
