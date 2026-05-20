@@ -53,9 +53,7 @@ public class MoveToTarget : MonoBehaviour
 
         if (flash != null)
         {
-            flash.FlashThenRed(shipType,
-    hitSegmentIndex,
-    shipOrientation); // calls method from other script
+            flash.FlashThenRed(shipType, hitSegmentIndex, shipOrientation); // calls method from other script
         }
         Destroy(gameObject); // destroys missile on impact
     }

@@ -1,5 +1,6 @@
-using UnityEngine;
 using System.Collections;
+using System.Diagnostics;
+using UnityEngine;
 
 public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attached to GameObjects and use Coroutines 
 {
@@ -75,6 +76,9 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
     int segmentIndex,
     string orientation)
     {
+        //UnityEngine.Debug.Log($"ShipType: {shipType}");
+        //UnityEngine.Debug.Log($"SegmentIndex: {segmentIndex}");
+        //UnityEngine.Debug.Log($"Orientation: {orientation}");
         if (alreadySpawned) return;
 
         alreadySpawned = true;
@@ -85,7 +89,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
     {
             // DESTROYER
             case "Destroyer":
-
+                UnityEngine.Debug.Log($"HandlePlayerShot in switch shipType: {shipType}");
                 if (segmentIndex == 0)
                     prefabToSpawn = DestroyerFrontPrefab;
                 else
@@ -95,7 +99,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
 
             // SUBMARINE
             case "Submarine":
-
+                UnityEngine.Debug.Log($"HandlePlayerShot in switch shipType: {shipType}");
                 if (segmentIndex == 0)
                     prefabToSpawn = SubmarineFrontPrefab;
                 else if (segmentIndex == 1)
@@ -107,7 +111,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
 
             // CRUISER
             case "Cruiser":
-
+                UnityEngine.Debug.Log($"HandlePlayerShot in switch shipType: {shipType}");
                 if (segmentIndex == 0)
                     prefabToSpawn = CruiserFrontPrefab;
                 else if (segmentIndex == 1)
@@ -119,7 +123,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
 
             // BATTLESHIP
             case "Battleship":
-
+                UnityEngine.Debug.Log($"HandlePlayerShot in switch shipType: {shipType}");
                 if (segmentIndex == 0)
                     prefabToSpawn = BattleshipFrontPrefab;
                 else if (segmentIndex == 1)
@@ -133,7 +137,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
 
             // CARRIER
             case "Carrier":
-
+                UnityEngine.Debug.Log($"HandlePlayerShot in switch shipType: {shipType}");
                 if (segmentIndex == 0)
                     prefabToSpawn = CarrierFrontPrefab;
                 else if (segmentIndex == 1)
@@ -147,9 +151,15 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
 
                 break;
         }
-
+        UnityEngine.Debug.Log($"Prefab chosen: {prefabToSpawn}");
+        if (prefabToSpawn == null)
+        {
+            UnityEngine.Debug.Log("PrefabToSpawn is NULL");
+            return;
+        }
         if (prefabToSpawn != null)
         {
+            //UnityEngine.Debug.Log("PrefabToSpawn is NULL");
             GameObject segment =
                 Instantiate(prefabToSpawn);
 
