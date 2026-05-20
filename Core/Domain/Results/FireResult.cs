@@ -13,14 +13,14 @@ namespace ARBattleship.Core.Domain
 
         public int? HitSegmentIndex { get; init; }
 
-        public Orientation? ShipOrientation { get; init; }
+        public string? ShipOrientation { get; init; }
 
         public bool IsHit => Outcome is ShotResult.Hit or ShotResult.Sunk;
 
         public bool IsSunk => Outcome == ShotResult.Sunk;
 
         // Private constructor ensures the "Miss" case doesn't accidentally have a ShipName
-        private FireResult(Coordinate coordinate, ShotResult outcome, ShipId? shipId, string? shipType, int? hitSegmentIndex, Orientation? shipOrientation)
+        private FireResult(Coordinate coordinate, ShotResult outcome, ShipId? shipId, string? shipType, int? hitSegmentIndex, string? shipOrientation)
         {
             Coordinate = coordinate;
             Outcome = outcome;
@@ -39,13 +39,13 @@ namespace ARBattleship.Core.Domain
         /// <summary>
         /// Creates a result for a shot that hit a specific ship type.
         /// </summary>
-        public static FireResult Hit(Coordinate coord, ShipId shipId, string shipType, int? segmentIndex, Orientation orientation) =>
+        public static FireResult Hit(Coordinate coord, ShipId shipId, string shipType, int? segmentIndex, string? orientation) =>
             new(coord, ShotResult.Hit, shipId, shipType, segmentIndex, orientation);
 
         /// <summary>
         /// Creates a result for a shot that finished off a ship.
         /// </summary>
-        public static FireResult Sunk(Coordinate coord, ShipId shipId, string shipType, int? segmentIndex, Orientation orientation) =>
+        public static FireResult Sunk(Coordinate coord, ShipId shipId, string shipType, int? segmentIndex, string? orientation) =>
             new(coord, ShotResult.Sunk, shipId, shipType, segmentIndex, orientation);
     }
 }
