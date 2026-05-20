@@ -302,7 +302,7 @@ namespace ARBattleship.Unity
             _game = new BattleshipGame(_boardSize);
             _gameService = new BattleshipGameService(_game);
             _enemyPlacementService = new EnemyShipPlacementService();
-            _aiStrategy = new HuntTargetStrategy();
+            _aiStrategy = new HuntTargetStrategy(_game.PlayerOneBoard.Size);
             _enemyTurnService = new EnemyTurnService(_game, _aiStrategy);
         }
 
