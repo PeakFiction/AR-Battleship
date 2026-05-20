@@ -1,0 +1,8 @@
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/FramePacing/CMakeFiles/swappywrapper.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/FramePacing/CMakeFiles/edit_cache.dir
+/Users/bramntyprytm/Documents/semester 8/DECO3801/AR-Battleship_backup/AR-Battleship/AR-Battleship/.utmp/RelWithDebInfo/57po2d5i/arm64-v8a/FramePacing/CMakeFiles/rebuild_cache.dir
