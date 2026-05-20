@@ -28,8 +28,8 @@ namespace ARBattleship.Unity
 		private int _localPlayerNumber;
 
         public static event Action OnGameStarted;
-        public static event Action<int, int, ShotOutcome> OnPlayerShotFired;
-        public static event Action<int, int, ShotOutcome> OnEnemyShotFired;
+		public static event Action<int, int, ShotOutcome, int?, string?, string?> OnPlayerShotFired;
+        public static event Action<int, int, ShotOutcome, int?, string?, string?> OnEnemyShotFired;
         public static event Action<int> OnGameOver;
         public static event Action<string> OnBattleLogEntry;
         public static event Action<int, string> OnShipSunk;
@@ -130,12 +130,12 @@ namespace ARBattleship.Unity
 
 			if (localPlayerFired)
 			{
-				OnPlayerShotFired?.Invoke(x, y, outcome);
+				OnPlayerShotFired?.Invoke(x, y, outcome, null, null, null);
 				OnBattleLogEntry?.Invoke($"You fired at ({x},{y}): {outcome}");
 			}
 			else
 			{
-				OnEnemyShotFired?.Invoke(x, y, outcome);
+				OnEnemyShotFired?.Invoke(x, y, outcome, null, null, null);
 				OnBattleLogEntry?.Invoke($"Opponent fired at ({x},{y}): {outcome}");
 			}
 		}
@@ -277,7 +277,6 @@ namespace ARBattleship.Unity
 			}
 
 			var outcome = result.Value;
-			OnPlayerShotFired?.Invoke(x, y, outcome);
 
 			if (_game.IsGameOver)
 			{
@@ -327,7 +326,6 @@ namespace ARBattleship.Unity
 
             var fireResult = result.Value!;
             var outcome = MapOutcome(fireResult.Outcome);
-            OnEnemyShotFired?.Invoke(fireResult.Coordinate.X, fireResult.Coordinate.Y, outcome);
 
             if (_game.IsGameOver)
                 OnGameOver?.Invoke(1);
@@ -343,21 +341,26 @@ namespace ARBattleship.Unity
                         OnBattleLogEntry?.Invoke(announcement.Message);
                         break;
 
-                    case ShotFiredEvent shot:
-                        var entry = shot.Outcome switch
-                        {
-                            ShotOutcome.Hit  => shot.PlayerId == PlayerId.PlayerOne
-                                ? $"You hit at ({shot.X},{shot.Y})!"
-                                : $"Enemy hit at ({shot.X},{shot.Y})!",
-                            ShotOutcome.Sunk => shot.PlayerId == PlayerId.PlayerOne
-                                ? "You sunk an enemy ship!"
-                                : "Enemy sunk your ship!",
-                            _ => shot.PlayerId == PlayerId.PlayerOne
-                                ? $"You missed at ({shot.X},{shot.Y})."
-                                : $"Enemy missed at ({shot.X},{shot.Y})."
-                        };
-                        OnBattleLogEntry?.Invoke(entry);
-                        break;
+					case ShotFiredEvent shot:
+						if (shot.PlayerId == PlayerId.PlayerOne)
+							OnPlayerShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipName);
+						else
+							OnEnemyShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipName);
+
+						var entry = shot.Outcome switch
+						{
+							ShotOutcome.Hit  => shot.PlayerId == PlayerId.PlayerOne
+								? $"You hit at ({shot.X},{shot.Y})!"
+								: $"Enemy hit at ({shot.X},{shot.Y})!",
+							ShotOutcome.Sunk => shot.PlayerId == PlayerId.PlayerOne
+								? "You sunk an enemy ship!"
+								: "Enemy sunk your ship!",
+							_ => shot.PlayerId == PlayerId.PlayerOne
+								? $"You missed at ({shot.X},{shot.Y})."
+								: $"Enemy missed at ({shot.X},{shot.Y})."
+						};
+						OnBattleLogEntry?.Invoke(entry);
+						break;
 
                     case ShipSunkEvent sunk:
                         OnShipSunk?.Invoke(sunk.PlayerId == PlayerId.PlayerOne ? 0 : 1, sunk.ShipType);

@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using ARBattleship.Core.Application.Enums;
-using ARBattleship.Core.Domain;
 
 namespace ARBattleship.Unity.UI
 {
@@ -51,14 +50,14 @@ namespace ARBattleship.Unity.UI
             RefreshMinimap();
         }
 
-        private void HandlePlayerShot(int x, int y, ShotOutcome outcome)
+        private void HandlePlayerShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
             Color color = outcome == ShotOutcome.Miss ? Color.blue : Color.red;
             enemyGridButtons[x][y].GetComponent<Image>().color = color;
             enemyGridButtons[x][y].interactable = false;
         }
 
-        private void HandleEnemyShot(int x, int y, ShotOutcome outcome)
+        private void HandleEnemyShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
             Color color = outcome == ShotOutcome.Miss ? Color.blue : Color.red;
             minimapCells[x][y].color = color;
