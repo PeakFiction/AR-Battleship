@@ -159,7 +159,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                 new Vector3(0f, 0.08f, -0.01f);
 
             // ROTATION BASED ON SHIP ORIENTATION
-            if (orientation == Orientation.Horizontal)
+            if (orientation == "Horizontal")
             {
             segment.transform.localRotation =
                 Quaternion.Euler(-90f, 0f, 0f);

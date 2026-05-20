@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using ARBattleship.Core.Application.Enums;
+using ARBattleship.Core.Domain;
 
 namespace ARBattleship.Unity.UI
 {
