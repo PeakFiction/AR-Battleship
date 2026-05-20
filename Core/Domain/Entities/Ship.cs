@@ -25,7 +25,6 @@ namespace ARBattleship.Core.Domain
             _hits = new HashSet<Coordinate>();
             _orderedPositions = new List<Coordinate>(positions);
 
-
             if (_positions.Count != size)
                 throw new ArgumentException($"Position count must match ship size ({size})");
         }

@@ -14,7 +14,7 @@ namespace ARBattleship.Core.Application
 
         // The five standard ship types in placement order (largest first to reduce
         // retry count on a filling board)
-        private static readonly (Func<ShipId, IEnumerable<Coordinate>, Ship> Factory, int Size, string Name)[] ShipDefinitions =
+        private static readonly (Func<ShipId, IEnumerable<Coordinate>, Orientation, Ship> Factory, int Size, string Name)[] ShipDefinitions =
         {
             (Ship.CreateCarrier,    5, "Carrier"),
             (Ship.CreateBattleship, 4, "Battleship"),
@@ -40,8 +40,8 @@ namespace ARBattleship.Core.Application
 
                 for (int attempt = 0; attempt < maxRetriesPerShip; attempt++)
                 {
-                    var positions = GenerateRandomPositions(size, game.PlayerTwoBoard.Size);
-                    var ship = factory(ShipId.New(), positions);
+                    var positions = GenerateRandomPositions(size, game.PlayerTwoBoard.Size, out var orientation);
+                    var ship = factory(ShipId.New(), positions, orientation);
                     var result = game.PlaceShip(PlayerId.PlayerTwo, ship);
 
                     if (result.IsSuccess)
@@ -60,9 +60,10 @@ namespace ARBattleship.Core.Application
 
         // ── Private helpers ───────────────────────────────────────────────────────
 
-        private IEnumerable<Coordinate> GenerateRandomPositions(int shipSize, int boardSize)
+        private IEnumerable<Coordinate> GenerateRandomPositions(int shipSize, int boardSize, out Orientation orientation)
         {
             bool horizontal = _random.Next(2) == 0;
+            orientation = horizontal ? Orientation.Horizontal : Orientation.Vertical;
 
             int startX = horizontal
                 ? _random.Next(0, boardSize - shipSize + 1)
