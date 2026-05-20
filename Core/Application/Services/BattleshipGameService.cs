@@ -67,7 +67,16 @@ namespace ARBattleship.Core.Application.Services
             if (fireResult.IsSunk)
                 AddEvent(new AnnouncementEvent($"The {fireResult.ShipName ?? "Ship"} has been sunk!"));
 
-            AddEvent(new ShotFiredEvent(command.PlayerId, command.Coordinate.X, command.Coordinate.Y, outcome, fireResult.HitSegmentIndex));
+            AddEvent(new ShotFiredEvent(
+                command.PlayerId,
+                command.Coordinate.X,
+                command.Coordinate.Y,
+                outcome,
+                fireResult.HitSegmentIndex,
+                fireResult.ShipOrientation,
+                fireResult.ShipName
+            ));
+            
             AddEvent(new TurnChangedEvent(_game.CurrentTurn));
 
             if (_game.IsGameOver)
@@ -180,8 +189,8 @@ namespace ARBattleship.Core.Application.Services
             }
 
             var ships = isOwnerView
-                ? board.GetShips().Select(s => new ShipView(s.ShipType, s.Size, s.IsSunk)).ToList()
-                : board.GetShips().Where(s => s.IsSunk).Select(s => new ShipView(s.ShipType, s.Size, s.IsSunk)).ToList();
+                ? board.GetShips().Select(s => new ShipView(s.ShipType, s.Size, s.IsSunk, s.Orientation)).ToList()
+                : board.GetShips().Where(s => s.IsSunk).Select(s => new ShipView(s.ShipType, s.Size, s.IsSunk, s.Orientation)).ToList();
 
             return new PlayerSnapshot(boardOwner, cells, ships);
         }
