@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class SplashScreenController : MonoBehaviour
 {
     [Header("Scene")]
-    [SerializeField] private string mainMenuSceneName = "0MainMenu";
+    [SerializeField] private string mainMenuSceneName = "0MainMenuScreen";
 
     [Header("Tap To Continue")]
     [SerializeField] private TMP_Text tapToContinueText;
