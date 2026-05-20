@@ -82,7 +82,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
         GameObject prefabToSpawn = null;
 
         switch (shipType)
-        {
+    {
             // DESTROYER
             case "Destroyer":
 
@@ -161,8 +161,8 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
             // ROTATION BASED ON SHIP ORIENTATION
             if (orientation == Orientation.Horizontal)
             {
-                segment.transform.localRotation =
-                    Quaternion.Euler(-90f, 0f, 0f);
+            segment.transform.localRotation =
+                Quaternion.Euler(-90f, 0f, 0f);
             }
             else
             {

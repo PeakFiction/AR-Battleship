@@ -41,7 +41,7 @@ public class ManualFireUI : MonoBehaviour
         if (panel != null) panel.SetActive(false);
     }
 
-    void OnShotResult(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? orientation, int? shipType)
+    void OnShotResult(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
     {
         if (statusText == null) return;
         string colLetter = ((char)('A' + x)).ToString();

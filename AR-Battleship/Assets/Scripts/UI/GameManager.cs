@@ -329,7 +329,6 @@ namespace ARBattleship.Unity
 
             var fireResult = result.Value!;
             var outcome = MapOutcome(fireResult.Outcome);
-            OnEnemyShotFired?.Invoke(fireResult.Coordinate.X, fireResult.Coordinate.Y, outcome);
 
             if (_game.IsGameOver)
                 OnGameOver?.Invoke(1);
