@@ -65,7 +65,7 @@ namespace ARBattleship.Core.Application.Services
             var outcome = MapToOutcome(fireResult);
 
             if (fireResult.IsSunk)
-                AddEvent(new AnnouncementEvent($"The {fireResult.ShipName ?? "Ship"} has been sunk!"));
+                AddEvent(new AnnouncementEvent($"The {fireResult.ShipType ?? "Ship"} has been sunk!"));
 
             AddEvent(new ShotFiredEvent(
                 command.PlayerId,
@@ -74,7 +74,7 @@ namespace ARBattleship.Core.Application.Services
                 outcome,
                 fireResult.HitSegmentIndex,
                 fireResult.ShipOrientation,
-                fireResult.ShipName
+                fireResult.ShipType
             ));
             
             AddEvent(new TurnChangedEvent(_game.CurrentTurn));
