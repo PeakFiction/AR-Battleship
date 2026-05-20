@@ -10,6 +10,9 @@ public class MoveToTarget : MonoBehaviour
     public float spawnHeight = 0.2f;
     public float impactHeight = 0.01f;
     public Transform chosenTile;
+    public int hitSegmentIndex;
+    public string shipOrientation;
+    public string shipType;
 
     void Start()
     {
@@ -50,7 +53,9 @@ public class MoveToTarget : MonoBehaviour
 
         if (flash != null)
         {
-            flash.FlashThenRed(); // calls method from other script
+            flash.FlashThenRed(shipType,
+    hitSegmentIndex,
+    shipOrientation); // calls method from other script
         }
         Destroy(gameObject); // destroys missile on impact
     }

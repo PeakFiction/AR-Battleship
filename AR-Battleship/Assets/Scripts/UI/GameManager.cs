@@ -28,8 +28,11 @@ namespace ARBattleship.Unity
 		private int _localPlayerNumber;
 
         public static event Action OnGameStarted;
-        public static event Action<int, int, ShotOutcome> OnPlayerShotFired;
-        public static event Action<int, int, ShotOutcome> OnEnemyShotFired;
+		int? HitSegmentIndex;
+		string? ShipOrientation;
+		string? ShipType;
+		public static event Action<int, int, ShotOutcome, int?, string?, string?> OnPlayerShotFired;
+        public static event Action<int, int, ShotOutcome, int?, string?, string?> OnEnemyShotFired;
         public static event Action<int> OnGameOver;
         public static event Action<string> OnBattleLogEntry;
         public static event Action<int, string> OnShipSunk;
@@ -130,12 +133,12 @@ namespace ARBattleship.Unity
 
 			if (localPlayerFired)
 			{
-				OnPlayerShotFired?.Invoke(x, y, outcome);
+				OnPlayerShotFired?.Invoke(x, y, outcome, null, null, null);
 				OnBattleLogEntry?.Invoke($"You fired at ({x},{y}): {outcome}");
 			}
 			else
 			{
-				OnEnemyShotFired?.Invoke(x, y, outcome);
+                OnEnemyShotFired?.Invoke(x, y, outcome, null, null, null);
 				OnBattleLogEntry?.Invoke($"Opponent fired at ({x},{y}): {outcome}");
 			}
 		}
@@ -277,7 +280,6 @@ namespace ARBattleship.Unity
 			}
 
 			var outcome = result.Value;
-			OnPlayerShotFired?.Invoke(x, y, outcome);
 
 			if (_game.IsGameOver)
 			{
@@ -344,6 +346,10 @@ namespace ARBattleship.Unity
                         break;
 
                     case ShotFiredEvent shot:
+						if (shot.PlayerId == PlayerId.PlayerOne)
+							OnPlayerShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipType);
+						else
+							OnEnemyShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipType);
                         var entry = shot.Outcome switch
                         {
                             ShotOutcome.Hit  => shot.PlayerId == PlayerId.PlayerOne

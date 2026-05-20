@@ -121,7 +121,7 @@ public class BattleshipAR : MonoBehaviour
         missileScript.missTargetTileAlt = chosenTile.transform;
     }
 
-    void SpawnHitRocket(int col, int row) {
+    void SpawnHitRocket(int col, int row /*, int? hitSegmentIndex, Orientation? shipOrientation, string shipType*/) {
         GameObject chosenTile = cellObjects[col, row];
 
         GameObject rocket = Instantiate(hitRocketPrefab);
@@ -137,9 +137,18 @@ public class BattleshipAR : MonoBehaviour
 
         rocketScript.chosenTile =
             chosenTile.transform;
+/*
+        rocketScript.hitSegmentIndex =
+            hitSegmentIndex ?? 0;
+
+        rocketScript.shipOrientation =
+            shipOrientation ?? Orientation.Horizontal;
+
+        rocketScript.shipType =
+            shipType;*/
     }
 
-    void HandlePlayerShot(int x, int y, ShotOutcome result)
+    void HandlePlayerShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
     {
         cellFired[x, y] = true;
         hoverIndicator.SetActive(false);
@@ -157,9 +166,10 @@ public class BattleshipAR : MonoBehaviour
         }
         else if (result == ShotOutcome.Hit || result == ShotOutcome.Sunk)
             //SetCellColor(x, y, hitColor, 0.7f);
-            SpawnHitRocket(x, y);
+            SpawnHitRocket(x, y /*hitSegmentIndex, shipOrientation, shipType*/);
 
         Debug.Log($"[AR] Shot at ({x},{y}) -> {result}");
+        Debug.Log($"[AR] Shot at a {shipOrientation} {shipType} at {hitSegmentIndex}");
     }
 
     void HandleGameOver(int winnerIndex)

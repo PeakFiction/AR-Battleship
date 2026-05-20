@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Unity;
 using ARBattleship.Multiplayer.Battleship;
+using System;
 
 public class ManualFireUI : MonoBehaviour
 {
@@ -40,7 +41,7 @@ public class ManualFireUI : MonoBehaviour
         if (panel != null) panel.SetActive(false);
     }
 
-    void OnShotResult(int x, int y, ShotOutcome outcome)
+    void OnShotResult(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? orientation, int? shipType)
     {
         if (statusText == null) return;
         string colLetter = ((char)('A' + x)).ToString();

@@ -10,7 +10,7 @@ namespace ARBattleship.Core.Application.Events {
         int Y,
         ShotOutcome Outcome,
         int? HitSegmentIndex,
-        Orientation? ShipOrientation,
+        string? ShipOrientation,
 		string? ShipType
     ) : IGameEvent;
 }
