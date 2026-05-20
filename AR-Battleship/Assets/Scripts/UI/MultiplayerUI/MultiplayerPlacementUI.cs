@@ -90,6 +90,13 @@ namespace ARBattleship.Unity.UI
         [Header("Start Button")]
         [Tooltip("Assign the START button here. If this is left empty, multiplayer placement will request start automatically after all ships are accepted.")]
         [SerializeField] private Button startButton;
+
+        [Tooltip("Optional parent/root for the START visual. If empty, the start button GameObject is shown/hidden directly.")]
+        [SerializeField] private GameObject startButtonRoot;
+
+        [Tooltip("Hide START until every ship has been confirmed and there is no active pending placement.")]
+        [SerializeField] private bool hideStartButtonUntilReady = true;
+
         [SerializeField] private GameObject placementPanel;
 
         [Header("Colors")]
@@ -97,6 +104,19 @@ namespace ARBattleship.Unity.UI
         [SerializeField] private Color placedCellColor = new Color(0.55f, 0.55f, 0.55f, 1f);
         [SerializeField] private Color previewValidColor = new Color(0.36f, 0.78f, 0.50f, 1f);
         [SerializeField] private Color previewInvalidColor = new Color(0.85f, 0.12f, 0.12f, 1f);
+
+        [Header("Placement Radius Cue")]
+        [Tooltip("Shows small dots on the one-tile no-placement radius around confirmed ships.")]
+        [SerializeField] private bool showPlacementRadiusDots = true;
+
+        [Tooltip("Color for the normal one-tile no-placement radius dots.")]
+        [SerializeField] private Color placementRadiusDotColor = new Color(1f, 1f, 1f, 0.85f);
+
+        [Tooltip("Color used when the pending ship overlaps another ship's no-placement radius.")]
+        [SerializeField] private Color placementRadiusInvalidColor = new Color(1f, 0.08f, 0.08f, 1f);
+
+        [Tooltip("Size of each no-placement radius dot inside a grid tile.")]
+        [SerializeField] private Vector2 placementRadiusDotSize = new Vector2(12f, 12f);
 
         [Header("Flow")]
         [SerializeField] private bool autoRequestStartWhenAllShipsPlaced = false;
@@ -108,6 +128,7 @@ namespace ARBattleship.Unity.UI
 
         private Button[,] gridButtons = new Button[10, 10];
         private Image[,] gridImages = new Image[10, 10];
+        private Image[,] radiusDotImages = new Image[10, 10];
 
         private PlacedShip pendingShip;
         private bool pendingValid;
@@ -213,6 +234,7 @@ namespace ARBattleship.Unity.UI
             if (startButton == null) return;
             startButton.onClick.RemoveAllListeners();
             startButton.onClick.AddListener(TryStartGame);
+            UpdateStartButtonVisibility();
         }
 
         private void AddTrigger(EventTrigger trigger, EventTriggerType type, System.Action<BaseEventData> callback)
@@ -255,6 +277,7 @@ namespace ARBattleship.Unity.UI
 
                     gridButtons[x, y] = cell;
                     gridImages[x, y] = cell.GetComponent<Image>();
+                    radiusDotImages[x, y] = CreateRadiusDot(cell.transform);
                 }
             }
         }
@@ -283,6 +306,26 @@ namespace ARBattleship.Unity.UI
             cellImage.color = emptyCellColor;
             cellImage.raycastTarget = true;
             return cell;
+        }
+
+        private Image CreateRadiusDot(Transform parent)
+        {
+            GameObject dot = new GameObject("PlacementRadiusDot");
+            dot.transform.SetParent(parent, false);
+
+            RectTransform rectTransform = dot.AddComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = Vector2.zero;
+            rectTransform.sizeDelta = placementRadiusDotSize;
+
+            Image image = dot.AddComponent<Image>();
+            image.color = placementRadiusDotColor;
+            image.raycastTarget = false;
+            image.enabled = false;
+
+            return image;
         }
 
         private void BuildGridLabels()
@@ -345,6 +388,7 @@ namespace ARBattleship.Unity.UI
 
             ShowPopupForShip(selectedShip);
             UpdateShipButtonVisuals();
+            UpdateStartButtonVisibility();
         }
 
         private void BeginPopupDrag(PointerEventData eventData)
@@ -461,21 +505,28 @@ namespace ARBattleship.Unity.UI
             pendingValid = CanPreviewShip(pendingShip);
             RepaintGrid();
             StartPulse();
+            UpdateStartButtonVisibility();
         }
 
         private bool CanPreviewShip(PlacedShip ship)
         {
             foreach (Vector2Int cell in GetOccupiedCells(ship))
             {
-                if (!IsInsideGrid(cell.x, cell.y)) return false;
+                if (!IsInsideGrid(cell.x, cell.y))
+                    return false;
 
                 foreach (KeyValuePair<string, PlacedShip> kvp in confirmedShips)
                 {
-                    if (kvp.Key == ship.Type) continue;
-                    foreach (Vector2Int occupied in GetOccupiedCells(kvp.Value))
-                        if (occupied.x == cell.x && occupied.y == cell.y) return false;
+                    // When readjusting an already confirmed ship, ignore its previous
+                    // placement and radius. The new placement will replace it.
+                    if (kvp.Key == ship.Type)
+                        continue;
+
+                    if (IsInsideShipRadius(cell, kvp.Value, true))
+                        return false;
                 }
             }
+
             return true;
         }
 
@@ -505,6 +556,7 @@ namespace ARBattleship.Unity.UI
             RepaintGrid();
             UpdateShipButtonVisuals();
             SelectNextUnplacedShip();
+            UpdateStartButtonVisibility();
 
             if (autoRequestStartWhenAllShipsPlaced && confirmedShips.Count == ShipOptionCount())
                 TryStartGame();
@@ -520,6 +572,7 @@ namespace ARBattleship.Unity.UI
                 if (!pendingValid)
                 {
                     StartPulse();
+                    UpdateStartButtonVisibility();
                     return;
                 }
 
@@ -529,12 +582,14 @@ namespace ARBattleship.Unity.UI
             if (confirmedShips.Count != ShipOptionCount())
             {
                 Debug.Log("Place and confirm all ships before starting the game.");
+                UpdateStartButtonVisibility();
                 return;
             }
 
             if (submitPlacementsRoutine != null)
                 StopCoroutine(submitPlacementsRoutine);
 
+            UpdateStartButtonVisibility();
             submitPlacementsRoutine = StartCoroutine(SubmitPlacementsThenStartGame());
         }
 
@@ -547,6 +602,7 @@ namespace ARBattleship.Unity.UI
             }
 
             isSubmittingPlacements = true;
+            UpdateStartButtonVisibility();
             SetPlacementInteractable(false);
             serverAcceptedShips.Clear();
 
@@ -706,18 +762,122 @@ namespace ARBattleship.Unity.UI
 
         private void RepaintGrid()
         {
-            for (int y = 0; y < 10; y++)
-                for (int x = 0; x < 10; x++)
-                    if (gridImages[x, y] != null) gridImages[x, y].color = emptyCellColor;
+            ClearGridVisuals();
 
             foreach (PlacedShip ship in confirmedShips.Values)
             {
-                if (pendingShip != null && ship.Type == pendingShip.Type) continue;
+                if (pendingShip != null && ship.Type == pendingShip.Type)
+                    continue;
+
                 PaintShipCells(ship, placedCellColor);
+                PaintShipRadiusDots(ship, placementRadiusDotColor);
             }
 
             if (pendingShip != null)
+            {
                 PaintShipCells(pendingShip, pendingValid ? previewValidColor : previewInvalidColor);
+
+                if (!pendingValid)
+                    PaintPendingRadiusViolations(pendingShip, placementRadiusInvalidColor);
+            }
+        }
+
+        private void ClearGridVisuals()
+        {
+            for (int y = 0; y < 10; y++)
+            {
+                for (int x = 0; x < 10; x++)
+                {
+                    if (gridImages[x, y] != null)
+                        gridImages[x, y].color = emptyCellColor;
+
+                    if (radiusDotImages[x, y] != null)
+                        radiusDotImages[x, y].enabled = false;
+                }
+            }
+        }
+
+        private void PaintShipRadiusDots(PlacedShip ship, Color color)
+        {
+            if (!showPlacementRadiusDots)
+                return;
+
+            foreach (Vector2Int cell in GetShipRadiusCells(ship, false))
+                PaintRadiusDot(cell.x, cell.y, color);
+        }
+
+        private void PaintPendingRadiusViolations(PlacedShip ship, Color color)
+        {
+            if (!showPlacementRadiusDots)
+                return;
+
+            foreach (Vector2Int cell in GetOccupiedCells(ship))
+            {
+                if (!IsInsideGrid(cell.x, cell.y))
+                    continue;
+
+                foreach (KeyValuePair<string, PlacedShip> kvp in confirmedShips)
+                {
+                    if (kvp.Key == ship.Type)
+                        continue;
+
+                    if (IsInsideShipRadius(cell, kvp.Value, true))
+                        PaintRadiusDot(cell.x, cell.y, color);
+                }
+            }
+        }
+
+        private void PaintRadiusDot(int x, int y, Color color)
+        {
+            if (!IsInsideGrid(x, y))
+                return;
+
+            Image dot = radiusDotImages[x, y];
+            if (dot == null)
+                return;
+
+            dot.color = color;
+            dot.enabled = true;
+            dot.transform.SetAsLastSibling();
+        }
+
+        private bool IsInsideShipRadius(Vector2Int cell, PlacedShip ship, bool includeShipCells)
+        {
+            foreach (Vector2Int radiusCell in GetShipRadiusCells(ship, includeShipCells))
+            {
+                if (radiusCell.x == cell.x && radiusCell.y == cell.y)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private IEnumerable<Vector2Int> GetShipRadiusCells(PlacedShip ship, bool includeShipCells)
+        {
+            HashSet<Vector2Int> occupiedCells = new HashSet<Vector2Int>(GetOccupiedCells(ship));
+            HashSet<Vector2Int> radiusCells = new HashSet<Vector2Int>();
+
+            foreach (Vector2Int occupied in occupiedCells)
+            {
+                for (int offsetY = -1; offsetY <= 1; offsetY++)
+                {
+                    for (int offsetX = -1; offsetX <= 1; offsetX++)
+                    {
+                        Vector2Int cell = new Vector2Int(occupied.x + offsetX, occupied.y + offsetY);
+
+                        if (!IsInsideGrid(cell.x, cell.y))
+                            continue;
+
+                        if (!includeShipCells && occupiedCells.Contains(cell))
+                            continue;
+
+                        radiusCells.Add(cell);
+                    }
+                }
+            }
+
+            foreach (Vector2Int cell in radiusCells)
+                yield return cell;
         }
 
         private void PaintShipCells(PlacedShip ship, Color color)
@@ -828,20 +988,25 @@ namespace ARBattleship.Unity.UI
                 float alpha = Mathf.Lerp(0.35f, 1f, Mathf.PingPong(Time.time * 2.5f, 1f));
                 Color pulseColor = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
                 PaintShipCells(pendingShip, pulseColor);
+
+                if (!pendingValid)
+                    PaintPendingRadiusViolations(pendingShip, pulseColor);
+
                 yield return null;
             }
         }
 
         private void RepaintConfirmedOnly()
         {
-            for (int y = 0; y < 10; y++)
-                for (int x = 0; x < 10; x++)
-                    if (gridImages[x, y] != null) gridImages[x, y].color = emptyCellColor;
+            ClearGridVisuals();
 
             foreach (PlacedShip ship in confirmedShips.Values)
             {
-                if (pendingShip != null && ship.Type == pendingShip.Type) continue;
+                if (pendingShip != null && ship.Type == pendingShip.Type)
+                    continue;
+
                 PaintShipCells(ship, placedCellColor);
+                PaintShipRadiusDots(ship, placementRadiusDotColor);
             }
         }
 
@@ -860,6 +1025,23 @@ namespace ARBattleship.Unity.UI
             image.enabled = sprite != null;
             image.preserveAspect = true;
             image.raycastTarget = false;
+        }
+
+        private void UpdateStartButtonVisibility()
+        {
+            if (startButton == null)
+                return;
+
+            bool readyToStart = confirmedShips.Count == ShipOptionCount() && pendingShip == null && !isSubmittingPlacements;
+            bool visible = !hideStartButtonUntilReady || readyToStart;
+
+            GameObject target = startButtonRoot != null ? startButtonRoot : startButton.gameObject;
+            if (target != null && target.activeSelf != visible)
+                target.SetActive(visible);
+
+            // Keep interactable state in sync too. If you assign a parent as StartButtonRoot,
+            // the button itself will still be non-clickable until placement is complete.
+            startButton.interactable = readyToStart;
         }
 
         private void UpdateShipButtonVisuals()
