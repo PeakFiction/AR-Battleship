@@ -1,7 +1,9 @@
+using System.Collections;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class CreateLobbyUI : MonoBehaviour
 {
@@ -13,11 +15,24 @@ public class CreateLobbyUI : MonoBehaviour
 	[SerializeField] private Button refreshCodeButton;
 	[SerializeField] private Button backButton;
 
+	[Header("Battle Start Popup")]
+	[Tooltip("Root object for the popup shown when the host starts the multiplayer match.")]
+	[SerializeField] private GameObject battleStartingPopup;
+	[Tooltip("Optional text inside the popup. Leave empty if your popup art already contains the text.")]
+	[SerializeField] private TMP_Text battleStartingPopupText;
+	[SerializeField] private string battleStartingMessage = "OPPONENT FOUND\nBATTLE STARTING...";
+	[SerializeField] private float battleStartingPopupDuration = 1.25f;
+	[SerializeField] private bool hideLobbyButtonsWhileStarting = true;
+	[SerializeField] private string gameplaySceneName = "6MultiplayerGameplay";
+
+	private bool isStartingGame;
+
 	private async void Start()
 	{
 		RegisterEvents();
+		HideBattleStartingPopup();
 
-		codeText.text = "Code: Creating...";
+		codeText.text = "Creating...";
 		statusText.text = "";
 		playerCountText.text = "Player Count: 0 / 2";
 
@@ -72,7 +87,7 @@ public class CreateLobbyUI : MonoBehaviour
 
 		if (statusText != null)
 		{
-			statusText.text = "Creating lobby...";
+			statusText.text = "AWAITING KEY...";
 		}
 	}
 
@@ -100,7 +115,7 @@ public class CreateLobbyUI : MonoBehaviour
 
 		if (statusText != null)
 		{
-			statusText.text = "Joined lobby. Waiting for host to start the game.";
+			statusText.text = "AWAITING SYNC";
 		}
 
 		if (backButton != null)
@@ -116,24 +131,44 @@ public class CreateLobbyUI : MonoBehaviour
 
 	public void OnStartGamePressed()
 	{
-		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost)
+		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost || isStartingGame)
 		{
 			return;
 		}
 
-		RelayManager.Instance.StartGameplayAsHost();
+		StartCoroutine(StartGameplayAfterPopup());
+	}
+
+	private IEnumerator StartGameplayAfterPopup()
+	{
+		isStartingGame = true;
+
+		ShowBattleStartingPopup();
+		SetLobbyActionButtonsInteractable(false);
+
+		if (statusText != null)
+		{
+			statusText.text = "OPPONENT FOUND\nBATTLE STARTING...";
+		}
+
+		yield return new WaitForSecondsRealtime(battleStartingPopupDuration);
+
+		if (RelayManager.Instance != null && RelayManager.Instance.IsHost)
+		{
+			RelayManager.Instance.StartGameplayAsHost();
+		}
 	}
 
 	public async void OnRefreshCodePressed()
 	{
-		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost)
+		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost || isStartingGame)
 		{
 			return;
 		}
 
 		SetLobbyActionButtonsInteractable(false);
 
-		codeText.text = "Code: Refreshing...";
+		codeText.text = "REFRESHING..";
 		await RelayManager.Instance.RefreshRelayCodeAsync();
 
 		SetLobbyActionButtonsInteractable(true);
@@ -142,6 +177,11 @@ public class CreateLobbyUI : MonoBehaviour
 	public void OnBackPressed()
 	{
 		Debug.Log("Back button pressed");
+
+		if (isStartingGame)
+		{
+			return;
+		}
 
 		if (RelayManager.Instance != null)
 		{
@@ -156,28 +196,52 @@ public class CreateLobbyUI : MonoBehaviour
 
 	private void RegisterEvents()
 	{
-		if (RelayManager.Instance == null)
+		if (RelayManager.Instance != null)
 		{
-			return;
+			RelayManager.Instance.OnStatusChanged += HandleStatusChanged;
+			RelayManager.Instance.OnJoinCodeChanged += HandleJoinCodeChanged;
+			RelayManager.Instance.OnClientCountChanged += HandleClientCountChanged;
+			RelayManager.Instance.OnCanStartGameChanged += SetStartGameButton;
 		}
 
-		RelayManager.Instance.OnStatusChanged += HandleStatusChanged;
-		RelayManager.Instance.OnJoinCodeChanged += HandleJoinCodeChanged;
-		RelayManager.Instance.OnClientCountChanged += HandleClientCountChanged;
-		RelayManager.Instance.OnCanStartGameChanged += SetStartGameButton;
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+		{
+			NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleNetworkSceneEvent;
+		}
 	}
 
 	private void UnregisterEvents()
 	{
-		if (RelayManager.Instance == null)
+		if (RelayManager.Instance != null)
+		{
+			RelayManager.Instance.OnStatusChanged -= HandleStatusChanged;
+			RelayManager.Instance.OnJoinCodeChanged -= HandleJoinCodeChanged;
+			RelayManager.Instance.OnClientCountChanged -= HandleClientCountChanged;
+			RelayManager.Instance.OnCanStartGameChanged -= SetStartGameButton;
+		}
+
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+		{
+			NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleNetworkSceneEvent;
+		}
+	}
+
+	private void HandleNetworkSceneEvent(SceneEvent sceneEvent)
+	{
+		if (sceneEvent.SceneEventType != SceneEventType.Load)
 		{
 			return;
 		}
 
-		RelayManager.Instance.OnStatusChanged -= HandleStatusChanged;
-		RelayManager.Instance.OnJoinCodeChanged -= HandleJoinCodeChanged;
-		RelayManager.Instance.OnClientCountChanged -= HandleClientCountChanged;
-		RelayManager.Instance.OnCanStartGameChanged -= SetStartGameButton;
+		if (!string.IsNullOrEmpty(gameplaySceneName) && sceneEvent.SceneName != gameplaySceneName)
+		{
+			return;
+		}
+
+		// Clients receive this when the host starts the network scene load.
+		// The host already shows the popup before calling StartGameplayAsHost().
+		ShowBattleStartingPopup();
+		SetLobbyActionButtonsInteractable(false);
 	}
 
 	private void HandleStatusChanged(string message)
@@ -197,11 +261,11 @@ public class CreateLobbyUI : MonoBehaviour
 
 		if (string.IsNullOrEmpty(code))
 		{
-			codeText.text = "Code:";
+			codeText.text = "";
 			return;
 		}
 
-		codeText.text = $"Code: {code}";
+		codeText.text = $"{code}";
 	}
 
 	private void HandleClientCountChanged(int connectedCount, int expectedCount)
@@ -216,22 +280,48 @@ public class CreateLobbyUI : MonoBehaviour
 	{
 		if (startGameButton != null)
 		{
-			startGameButton.interactable = canStart;
+			startGameButton.interactable = canStart && !isStartingGame;
 		}
 	}
 
 	private void SetLobbyActionButtonsInteractable(bool interactable)
 	{
+		bool allowed = interactable && !isStartingGame;
+
 		if (refreshCodeButton != null)
 		{
-			refreshCodeButton.interactable = interactable;
+			refreshCodeButton.interactable = allowed;
 		}
 
 		if (backButton != null)
 		{
-			backButton.interactable = true;
+			backButton.interactable = allowed;
 		}
 
-		SetStartGameButton(false);
+		if (!allowed)
+		{
+			SetStartGameButton(false);
+		}
+	}
+
+	private void ShowBattleStartingPopup()
+	{
+		if (battleStartingPopupText != null)
+		{
+			battleStartingPopupText.text = battleStartingMessage;
+		}
+
+		if (battleStartingPopup != null)
+		{
+			battleStartingPopup.SetActive(true);
+		}
+	}
+
+	private void HideBattleStartingPopup()
+	{
+		if (battleStartingPopup != null)
+		{
+			battleStartingPopup.SetActive(false);
+		}
 	}
 }
