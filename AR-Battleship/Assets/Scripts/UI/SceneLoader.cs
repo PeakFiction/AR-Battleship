@@ -12,6 +12,19 @@ public class SceneLoader : MonoBehaviour
     public void LoadGameplay()              { SceneManager.LoadScene("5Gameplay"); }
     public void LoadMultiplayerGameplay()   { SceneManager.LoadScene("6MultiplayerGameplay"); }
     public void LoadDifficultySelect()      { SceneManager.LoadScene("7DifficultySelect"); }
+    public void LoadGuide()                 { SceneManager.LoadScene("8Guide"); }
+    public void LoadCredits()               { SceneManager.LoadScene("9Credits"); }
+
+    public void LoadGuidePage2()               { SceneManager.LoadScene("8GuidePage2"); }
+
+    public void LoadGuidePage3()               { SceneManager.LoadScene("8GuidePage3"); }
+    public void LoadGuidePage4()               { SceneManager.LoadScene("8GuidePage4"); }
+    public void LoadGuidePage5()               { SceneManager.LoadScene("8GuidePage5"); }
+
+    public void LoadGuidePage6()               { SceneManager.LoadScene("8GuidePage6"); }
+    public void LoadGuidePage7()               { SceneManager.LoadScene("8GuidePage7"); }
+    public void LoadGuidePage8()               { SceneManager.LoadScene("8GuidePage8"); }
+    public void LoadGuidePage9()               { SceneManager.LoadScene("8GuidePage9"); }
 
     public void QuitGame()
     {
