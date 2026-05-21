@@ -21,6 +21,7 @@ public class BattleshipAR : MonoBehaviour
 
     [Header("Visuals")]
     //public Color gridColor = Color.cyan;
+    //Test
     public Color hoverColor = Color.yellow;
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
