@@ -1,6 +1,7 @@
 using ARBattleship.Core.Application.Commands;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Core.Application.Services;
+using ARBattleship.Core.Application.Events;
 using ARBattleship.Core.Domain;
 using Unity.Netcode;
 using UnityEngine;
