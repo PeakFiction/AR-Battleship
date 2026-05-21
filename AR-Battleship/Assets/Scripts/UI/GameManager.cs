@@ -28,9 +28,6 @@ namespace ARBattleship.Unity
 		private int _localPlayerNumber;
 
         public static event Action OnGameStarted;
-		int? HitSegmentIndex;
-		string? ShipOrientation;
-		string? ShipType;
 		public static event Action<int, int, ShotOutcome, int?, string?, string?> OnPlayerShotFired;
         public static event Action<int, int, ShotOutcome, int?, string?, string?> OnEnemyShotFired;
         public static event Action<int> OnGameOver;
@@ -127,18 +124,21 @@ namespace ARBattleship.Unity
 			int shooterPlayerNumber,
 			int x,
 			int y,
-			ShotOutcome outcome)
+			ShotOutcome outcome,
+			int? hitSegmentIndex,
+    		string? shipOrientation,
+    		string? shipType)
 		{
 			bool localPlayerFired = shooterPlayerNumber == _localPlayerNumber;
 
 			if (localPlayerFired)
 			{
-				OnPlayerShotFired?.Invoke(x, y, outcome, null, null, null);
+				OnPlayerShotFired?.Invoke(x, y, outcome, hitSegmentIndex, shipOrientation, shipType);
 				OnBattleLogEntry?.Invoke($"You fired at ({x},{y}): {outcome}");
 			}
 			else
 			{
-                OnEnemyShotFired?.Invoke(x, y, outcome, null, null, null);
+                OnEnemyShotFired?.Invoke(x, y, outcome, hitSegmentIndex, shipOrientation, shipType);
 				OnBattleLogEntry?.Invoke($"Opponent fired at ({x},{y}): {outcome}");
 			}
 		}
