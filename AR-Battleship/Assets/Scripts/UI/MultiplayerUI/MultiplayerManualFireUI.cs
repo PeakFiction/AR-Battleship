@@ -114,7 +114,10 @@ namespace ARBattleship.Unity.UI
             int shooterPlayerNumber,
             int x,
             int y,
-            ShotOutcome outcome)
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             if (shooterPlayerNumber != localPlayerNumber)
             {

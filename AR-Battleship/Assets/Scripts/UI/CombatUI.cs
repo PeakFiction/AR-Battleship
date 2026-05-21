@@ -308,7 +308,7 @@ namespace ARBattleship.Unity.UI
             SetLocalTurn(true, true);
         }
 
-        private void HandlePlayerShot(int x, int y, ShotOutcome outcome)
+        private void HandlePlayerShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
             if (IsInsideGrid(x, y) && enemyGridButtons[x][y] != null)
             {
@@ -335,7 +335,7 @@ namespace ARBattleship.Unity.UI
                 SetLocalTurn(false, true);
         }
 
-        private void HandleEnemyShot(int x, int y, ShotOutcome outcome)
+        private void HandleEnemyShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
             if (IsInsideGrid(x, y) && minimapCells[x][y] != null)
                 minimapCells[x][y].color = outcome == ShotOutcome.Miss ? MissColor : HitColor;

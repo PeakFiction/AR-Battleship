@@ -1,0 +1,30 @@
+fileFormatVersion: 2
+guid: 804f57bd383af244f8f6dda58d552122
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - shipSegmentPrefab: {instanceID: 0}
+  - DestroyerFrontPrefab: {instanceID: 0}
+  - DestroyerBackPrefab: {instanceID: 0}
+  - SubmarineBackPrefab: {instanceID: 0}
+  - SubmarineMiddlePrefab: {instanceID: 0}
+  - SubmarineFrontPrefab: {instanceID: 0}
+  - CruiserBackPrefab: {instanceID: 0}
+  - CruiserMiddlePrefab: {instanceID: 0}
+  - CruiserFrontPrefab: {instanceID: 0}
+  - BattleshipBackPrefab: {instanceID: 0}
+  - BattleshipSecondToBackPrefab: {instanceID: 0}
+  - BattleshipSecondToFrontPrefab: {instanceID: 0}
+  - BattleshipFrontPrefab: {instanceID: 0}
+  - CarrierBackPrefab: {instanceID: 0}
+  - CarrierSecondToBackPrefab: {instanceID: 0}
+  - CarrierMiddlePrefab: {instanceID: 0}
+  - CarrierSecondToFrontPrefab: {instanceID: 0}
+  - CarrierFrontPrefab: {instanceID: 0}
+  - firePrefab: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
