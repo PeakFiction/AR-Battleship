@@ -1,0 +1,12 @@
+# ninja log v5
+3	336	1779378834905358841	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	d438dde0bf2ebe09
+337	559	1779378835104423328	/Users/muhammad.sakhran/Documents/UQ/DECO3801/AR-Battleship/AR-BattleshipTest/AR-Battleship/AR-Battleship/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/5e2l1d2c/obj/arm64-v8a/libswappywrapper.so	eabe30051c1aa0a3
+2	1457	1779378836020390473	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	cb5ad3a22d4dca48
+1	1533	1779378836084043917	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	b413dd7353bcf667
+1	1543	1779378836106628501	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	51be058ddcee32b1
+1	1564	1779378836126702617	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	6ecb0ec2665c86c9
+2	1578	1779378836142739385	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	c346a4f882477231
+3	1706	1779378836265563341	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	d91b12dc610ffff0
+1	1881	1779378836443142957	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	38827ff1a3466977
+0	2003	1779378836565581495	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	833f585c210da7fb
+2003	2142	1779378836705884973	/Users/muhammad.sakhran/Documents/UQ/DECO3801/AR-Battleship/AR-BattleshipTest/AR-Battleship/AR-Battleship/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/5e2l1d2c/obj/arm64-v8a/libgame.so	7325036def5b73da
