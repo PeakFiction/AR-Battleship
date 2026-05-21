@@ -16,10 +16,6 @@ public class MoveToTarget : MonoBehaviour
 
     void Start()
     {
-        //startPos = new Vector3(9.1f, 25f, 15.6f);
-        //endPos   = new Vector3(9.1f, 0f, 15.6f);
-
-        //transform.position = startPos;
         if (chosenTile != null)
         {
             startPos =
@@ -45,10 +41,8 @@ public class MoveToTarget : MonoBehaviour
         }
     }
 
-    //void OnTriggerEnter(Collider other)
     void TriggerImpact()
     {
-        //TileFlash flash = other.GetComponent<TileFlash>();
         TileFlash flash = chosenTile.GetComponent<TileFlash>();
 
         if (flash != null)

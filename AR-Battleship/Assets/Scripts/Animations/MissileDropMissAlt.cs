@@ -17,9 +17,6 @@ public class MissileDropMissAlt : MonoBehaviour
     {
         if (missTargetTileAlt != null) //hard coded anyways but this will check if the target exists
         {
-            //missStartPointAlt = new Vector3(2.4f, 25f, 4.3f);//missTargetTileAlt.position + new Vector3(0f, missSpawnHeightAlt, 0f);
-            //missEndPointAlt = new Vector3(2.4f, 0f, 4.3f);//missTargetTileAlt.position + new Vector3(0f, missImpactHeightAlt, 0f);
-            //transform.position = missStartPointAlt;
             missStartPointAlt = missTargetTileAlt.position + new Vector3(0f, missSpawnHeightAlt, 0f);
             missEndPointAlt = missTargetTileAlt.position + new Vector3(0f, missImpactHeightAlt, 0f);
             transform.position = missStartPointAlt;

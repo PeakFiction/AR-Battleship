@@ -221,9 +221,9 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                 }
                 else if (shipType == "Submarine")
                 {
-                    float[] shipZSegCoords = new float[] {0.01f, 0.014f, 0.019f};
+                    float[] shipZSegCoords = new float[] {0.005f, 0.006f, 0.005f};
                     segment.transform.localRotation = Quaternion.Euler(-90f, 90, 90f);
-                    segment.transform.localPosition = new Vector3(0.01f, 0.08f, shipZSegCoords[segmentIndex]);
+                    segment.transform.localPosition = new Vector3(0f, 0.08f, shipZSegCoords[segmentIndex]);
                     segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
                 }
                 else if (shipType == "Destroyer")

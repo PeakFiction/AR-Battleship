@@ -47,13 +47,9 @@ public class BattleshipAR : MonoBehaviour
 
     private Vector3 smoothedLocalPos;
     private float smoothSpeed = 5f;
-    //Michael crap
     public GameObject customCellPrefab;
-    //Michael again
     public GameObject rocketPrefab;
-    //and again
     public GameObject hitRocketPrefab;
-    //and again
     public Transform targetTile;
     private Color originalTileColor;
 
@@ -158,17 +154,10 @@ public class BattleshipAR : MonoBehaviour
 
         if (result == ShotOutcome.Miss)
         {
-            //SetCellColor(x, y, missColor, 0.7f); //sams stuff
             SpawnMissRocket(x, y);
-            //MissTileMarkerAlt marker = cellObjects[x, y].GetComponent<MissTileMarkerAlt>();
-            //if (marker != null)
-            //{
-            //    marker.TriggerMissVisualAlt();
-            //}
         }
         else if (result == ShotOutcome.Hit || result == ShotOutcome.Sunk)
         {
-            //SetCellColor(x, y, hitColor, 0.7f);
             UnityEngine.Debug.Log($"HandlePlayerShot shipType in AR: {shipType}");
             SpawnHitRocket(x, y, hitSegmentIndex, shipOrientation, shipType);
         }
@@ -187,20 +176,16 @@ public class BattleshipAR : MonoBehaviour
         {
             for (int col = 0; col < gridCols; col++)
             {
-                //GameObject cell = GameObject.CreatePrimitive(PrimitiveType.Quad); //sams stuff
-                GameObject cell = Instantiate(customCellPrefab); //michael stuff
+                GameObject cell = Instantiate(customCellPrefab);
                 cell.name = $"Cell_{col}_{row}";
                 cell.transform.SetParent(boardObserver.transform);
 
                 cell.transform.localPosition = new Vector3(CellX(col), 0.001f, CellZ(row));
-                //cell.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); //sams stuff
-                //cell.transform.localScale = new Vector3(cellSize * 0.9f, cellSize * 0.9f, 1f); //sams stuff
                 cell.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
                 cell.transform.localScale = new Vector3(0.75f, 0.12f, 0.75f);
 
                 Renderer rend = cell.GetComponent<Renderer>();
                 originalTileColor = rend.material.color;
-                //rend.material = CreateCellMaterial(gridColor, 0.3f); //sams stuff
                 Destroy(cell.GetComponent<Collider>());
                 cell.SetActive(false);
                 cellObjects[col, row] = cell;
@@ -407,21 +392,6 @@ public class BattleshipAR : MonoBehaviour
         if (aimTracked)
         {
             Vector2Int cell = GetCellFromObserver(aimObserver);
-
-            //if (cell.x >= 0 && !cellFired[cell.x, cell.y])
-            //{
-            //    currentHoverCell = cell;
-            //    lockedCell = cell;
-
-            //    /*hoverIndicator.transform.localPosition = new Vector3(CellX(cell.x), 0.003f, CellZ(cell.y));
-            //    hoverIndicator.SetActive(true);
-
-            //    Renderer hRend = hoverIndicator.GetComponent<Renderer>();
-            //    Color c = hoverColor;
-            //    c.a = 0.5f;
-            //    hRend.material.color = c;*/
-            //    SetCellColor(cell.x, cell.y, new Color(1f, 0.5f, 0f), 1f);
-            //}
             if (cell.x >= 0 && !cellFired[cell.x, cell.y])
             {
                 // Restore old tile
@@ -433,8 +403,6 @@ public class BattleshipAR : MonoBehaviour
                         previousHoverCell.y,
                         originalTileColor,
                         originalTileColor.a
-                    //gridColor,
-                    //1f
                     );
                 }
 
@@ -466,8 +434,6 @@ public class BattleshipAR : MonoBehaviour
         }
         else
         {
-            //hoverIndicator.SetActive(false);
-            //currentHoverCell = new Vector2Int(-1, -1);
             if (previousHoverCell.x >= 0)
             {
                 SetCellColor(
