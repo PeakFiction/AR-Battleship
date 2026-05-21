@@ -43,80 +43,56 @@ namespace ARBattleship.Unity.UI
         [SerializeField] private float turnIndicatorSeconds = 1.15f;
 
         [Header("1 - Enemy 2D Board Toggle Overlay")]
-        [Tooltip("Your hamburger/menu button. This toggles the generated 2D enemy board on/off.")]
         [SerializeField] private Button enemyBoardToggleButton;
 
-        [Tooltip("Parent RectTransform for the generated 2D enemy board. Create an empty UI object where you want the board to live. If empty, Canvas is used.")]
         [SerializeField] private RectTransform enemyBoardOverlayParent;
 
-        [Tooltip("Show the 2D board immediately when gameplay starts. For AR gameplay this is usually false.")]
         [SerializeField] private bool showEnemyBoardOnGameStart = false;
 
         [Header("0.5 - Combat UI Visibility")]
-        [Tooltip("CanvasGroup that controls the full combat HUD/root. If empty, the script uses or creates one on this GameObject. Keep the script GameObject active; this only fades/disables UI interaction.")]
         [SerializeField] private CanvasGroup combatUiCanvasGroup;
 
-        [Tooltip("Hide the combat HUD while players are still in ship placement. This prevents multiplayer placement UI from overlaying on top of gameplay UI.")]
         [SerializeField] private bool hideCombatUiUntilBattleStarted = true;
 
-        [Tooltip("Usually false. When hidden, the combat UI should not block touches meant for ship placement.")]
         [SerializeField] private bool combatUiBlocksRaycastsWhenHidden = false;
 
-        [Tooltip("Cell size for the generated 2D board. Increase this to make the overlay board bigger.")]
         [SerializeField] private float enemyBoardCellSize = 44f;
 
-        [Tooltip("Position of the generated board relative to Enemy Board Overlay Parent.")]
         [SerializeField] private Vector2 enemyBoardAnchoredPosition = Vector2.zero;
 
-        [Tooltip("Font size for A-J and 1-10 labels on the generated 2D board.")]
         [SerializeField] private int enemyBoardLabelFontSize = 16;
 
         [Header("2 - Minimap Slot")]
-        [Tooltip("Square UI RectTransform that defines the minimap size and position. The minimap will fill this object.")]
         [SerializeField] private RectTransform minimapSlot;
 
-        [Tooltip("Padding inside Minimap Slot. Use 0 if the slot already has the exact desired size.")]
         [SerializeField] private float minimapPadding = 0f;
 
-        [Tooltip("Gap between minimap cells.")]
         [SerializeField] private float minimapCellGap = 1.5f;
 
         [Header("3 - Enemy Fleet Figma Panel")]
-        [Tooltip("Your Figma Enemy Fleet component root. It should contain only the ENEMY FLEET art and the LOG button art.")]
         [SerializeField] private GameObject enemyFleetFigmaRoot;
 
-        [Tooltip("The actual Button component for the LOG button inside the Figma Enemy Fleet component.")]
         [SerializeField] private Button enemyFleetLogButton;
 
-        [Tooltip("Optional TMP text for '5 REMAINING'. Leave empty to generate it under Dynamic Root.")]
         [SerializeField] private TextMeshProUGUI enemyFleetRemainingText;
 
-        [Tooltip("Parent for generated '5 REMAINING' text and red blocks. If empty, Enemy Fleet Figma Root is used.")]
         [SerializeField] private RectTransform enemyFleetDynamicRoot;
 
-        [Tooltip("Optional parent for generated red fleet blocks. If empty, Dynamic Root is used.")]
         [SerializeField] private RectTransform enemyFleetPipsParent;
 
-        [Tooltip("Optional sprite from your Canvas UI for each red block. If empty, solid Image blocks are generated.")]
         [SerializeField] private Sprite enemyFleetPipSprite;
 
-        [Tooltip("Position for generated '5 REMAINING' if Remaining Text is not assigned.")]
         [SerializeField] private Vector2 generatedRemainingTextPosition = new Vector2(0f, -42f);
 
-        [Tooltip("Size for generated '5 REMAINING' if Remaining Text is not assigned.")]
         [SerializeField] private Vector2 generatedRemainingTextSize = new Vector2(170f, 28f);
 
-        [Tooltip("Top-left position for the generated fleet blocks.")]
         [SerializeField] private Vector2 generatedPipsStartPosition = new Vector2(0f, -72f);
 
-        [Tooltip("Size of each generated fleet block.")]
         [SerializeField] private Vector2 generatedPipSize = new Vector2(16f, 16f);
 
-        [Tooltip("Horizontal spacing between generated fleet blocks.")]
         [SerializeField] private float generatedPipSpacing = 22f;
 
         [Header("4 - Log Popup Figma Panel")]
-        [Tooltip("Your full Figma Log popup root, including LOG title art, black box, border, and X button art.")]
         [SerializeField] private GameObject logPopupFigmaRoot;
 
         [Tooltip("The actual Button component for the X close button inside the Log popup.")]
