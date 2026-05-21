@@ -147,6 +147,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                 break;
         }
         UnityEngine.Debug.Log($"Prefab chosen: {prefabToSpawn}");
+        int omak = 0;
         if (prefabToSpawn == null)
         {
             UnityEngine.Debug.Log("PrefabToSpawn is NULL");
@@ -154,21 +155,36 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
         }
         if (prefabToSpawn != null)
         {
+            //if (omak == 0) {
+                
+            //    omak = 1;
+            //    GameObject segment1 = Instantiate(SubmarineMiddlePrefab);
+            //    segment1.transform.SetParent(transform);
+            //    segment1.transform.localRotation = Quaternion.Euler(-90f, 90f, 0f);
+            //    segment1.transform.localPosition = new Vector3(0.01f, 0.08f, 0f);
+            //    segment1.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
+            //    //GameObject segment2 = Instantiate(CruiserMiddlePrefab);
+            //    //segment2.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            //    //segment2.transform.localPosition = new Vector3(0, 0.08f, 0f);
+
+            //}
             //UnityEngine.Debug.Log("PrefabToSpawn is NULL");
             GameObject segment =
                 Instantiate(prefabToSpawn);
 
             segment.transform.SetParent(transform);
 
+
             // ROTATION BASED ON SHIP ORIENTATION
             if (orientation == "Horizontal")
             {
                 if (shipType == "Carrier")
                 {
-                    float[] shipXSegCoords = new float[] { -0.01f, -0.012f, -0.015f, -0.018f, 0.005f };
+                    float[] shipXSegCoords = new float[] { -0.01f, -0.012f, -0.015f, -0.018f, -0.02f };
                     float[] shipZSegCoords = new float[] { 0.0019f, 0f, 0f, 0f, 0f };
                     float[] shipYRot = new float[] {-90f, -90f, -90f, -90f, 90f};
-                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], 0f);
+                    float[] shipZRot = new float[] { 0f, 0f, 0f, 0f, 0f };
+                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, shipZSegCoords[segmentIndex]);
                 }
                 else if (shipType == "Battleship")
@@ -179,22 +195,31 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                 }
                 else if (shipType == "Cruiser")
                 {
-                    float[] shipXSegCoords = new float[] {0.01f, 0.011f, 0.011f};
-                    segment.transform.localRotation = Quaternion.Euler(-90f, 90f, 0f);
+                    float[] shipXSegCoords = new float[] {0.011f, 0.011f, 0.011f};
+                    float[] shipYRot = new float[] { 90f, 0f, 90f };
+                    float[] shipZRot = new float[] { 0f, 90f, 0f };
+                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, 0f);
+                    //if (segmentIndex == 1)
+                    //{
+                    //    segment.transform.localScale = new Vector3(2f, 1.5f, 1.5f);
+                    //}
                 }
                 else if (shipType == "Submarine")
                 {
                     float[] shipXSegCoords = new float[] {0.006f, -0.007f, 0.01f};
-                    float[] shipYRot = new float[] {-90f, 90f, -90f};
-                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], 0f);
+                    float[] shipYRot = new float[] {90f, 180f, 90f};
+                    float[] shipZRot = new float[] { 0f, 90f, 0f };
+                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, 0f);
                     segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
                 }
                 else if (shipType == "Destroyer")
                 {
-                    float[] shipXSegCoords = new float[] {-0.01f, 0.01f };
-                    segment.transform.localRotation = Quaternion.Euler(-90f, 90f, 0f);
+                    float[] shipXSegCoords = new float[] {0.01f, 0.01f };
+                    float[] shipYRot = new float[] {0f, 90f};
+                    float[] shipZRot = new float[] {90f, 0f};
+                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, 0f);
                 }
             }
@@ -218,23 +243,36 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                     float[] shipZSegCoords = new float[] {0f, 0.003f, 0.006f};
                     segment.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
                     segment.transform.localPosition = new Vector3(0, 0.08f, shipZSegCoords[segmentIndex]);
+                    //if (segmentIndex == 1)
+                    //{
+                    //    segment.transform.localScale = new Vector3(2f, 1.5f, 1.5f);
+                    //}
                 }
                 else if (shipType == "Submarine")
                 {
-                    float[] shipZSegCoords = new float[] {0.005f, 0.006f, 0.005f};
-                    segment.transform.localRotation = Quaternion.Euler(-90f, 90, 90f);
+                    float[] shipZSegCoords = new float[] {-0.02f, 0.005f, 0.006f};
+                    float[] shipZRot = new float[] { 0f, 180f, 180f };
+                    segment.transform.localRotation = Quaternion.Euler(-90f, 180, shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(0f, 0.08f, shipZSegCoords[segmentIndex]);
-                    segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
+                    //segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
                 }
                 else if (shipType == "Destroyer")
                 {
-                    float[] shipZSegCoords = new float[] {-0.01f, 0.01f};
-                    segment.transform.localRotation = Quaternion.Euler(-90f, -90f, 90f);
-                    segment.transform.localPosition = new Vector3(0, 0.08f, shipZSegCoords[segmentIndex]);
+                    float[] shipZSegCoords = new float[] {0.01f, 0.01f};
+                    if (segmentIndex == 1)
+                    {
+                        segment.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                    } else { segment.transform.localRotation = Quaternion.Euler(-90f, -90f, 90f);
+                    }
+                        segment.transform.localPosition = new Vector3(0, 0.08f, shipZSegCoords[segmentIndex]);
                 }
 
             }
-            if (shipType != "Submarine")
+            if (shipType == "Cruiser" && segmentIndex == 1)
+            {
+                segment.transform.localScale = new Vector3(2f, 1.5f, 1.5f);
+            }
+            else
             {
                 segment.transform.localScale = new Vector3(0.014f, 0.014f, 0.1f);
             }
