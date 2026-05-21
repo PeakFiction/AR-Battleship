@@ -383,7 +383,14 @@ namespace ARBattleship.Unity.UI
             AddBattleLog($"Your {shipType} was placed on the minimap.");
         }
 
-        private void OnShotResolved(int shooterPlayerNumber, int x, int y, ShotOutcome outcome)
+        private void OnShotResolved(
+            int shooterPlayerNumber,
+            int x,
+            int y,
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             bool localPlayerFired = shooterPlayerNumber == localPlayerNumber;
             Color color = outcome == ShotOutcome.Miss ? MissColor : HitColor;
