@@ -20,7 +20,7 @@ public class BattleshipAR : MonoBehaviour
     public float offsetZ = 0.15f;
 
     [Header("Visuals")]
-    public Color gridColor = Color.cyan;
+    //public Color gridColor = Color.cyan;
     public Color hoverColor = Color.yellow;
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
@@ -439,8 +439,8 @@ public class BattleshipAR : MonoBehaviour
                 SetCellColor(
                     previousHoverCell.x,
                     previousHoverCell.y,
-                    gridColor,
-                    1f
+                    originalTileColor,
+                    originalTileColor.a
                 );
             }
 
