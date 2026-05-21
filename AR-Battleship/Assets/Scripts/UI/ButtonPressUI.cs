@@ -52,8 +52,15 @@ public class CanvasUIButtonFeedback : MonoBehaviour,
             label = GetComponentInChildren<TMP_Text>(true);
 
         if (audioSource == null)
+        {
             audioSource = GetComponent<AudioSource>();
-
+            
+            if (audioSource == null && SFXManager.Instance != null)
+            {
+                audioSource = SFXManager.Instance.GetAudioSource();
+            }
+        }
+        
         ApplyVisual(false, instant: true);
     }
 
