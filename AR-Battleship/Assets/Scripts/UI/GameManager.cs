@@ -28,6 +28,17 @@ namespace ARBattleship.Unity
 
 		private int _localPlayerNumber;
 
+		// Public method to set game mode - call this when switching between modes
+		public void SetMultiplayerMode(bool enabled)
+		{
+			Debug.Log($"[GameManager] SetMultiplayerMode: {enabled}");
+			_useMultiplayer = enabled;
+			if (!enabled)
+			{
+				_multiplayerSession = null;
+			}
+		}
+
         public static event Action OnGameStarted;
 		public static event Action<int, int, ShotOutcome, int?, string?, string?> OnPlayerShotFired;
         public static event Action<int, int, ShotOutcome, int?, string?, string?> OnEnemyShotFired;
@@ -161,11 +172,20 @@ namespace ARBattleship.Unity
         public bool PlaceShip(string shipType, Coordinate startCoordinate, Orientation orientation)
 		{
 			EnsureMultiplayerSession();
+			
+			// Auto-detect mode mismatch
+			bool hasValidMultiplayerSession = _multiplayerSession != null;
+			if (_useMultiplayer && !hasValidMultiplayerSession)
+			{
+				Debug.LogWarning("[GameManager.PlaceShip] Multiplayer flag set but no session - forcing singleplayer");
+				_useMultiplayer = false;
+			}
+			
 			if (_useMultiplayer)
 			{
 				if (_multiplayerSession == null)
 				{
-					Debug.LogWarning("[GameManager] Multiplayer session is missing.");
+					Debug.LogError("[GameManager] Multiplayer session is missing in PlaceShip!");
 					return false;
 				}
 
@@ -179,8 +199,16 @@ namespace ARBattleship.Unity
 				return true;
 			}
 
+			// Singleplayer mode
+			if (_game == null)
+			{
+				Debug.LogError("[GameManager.PlaceShip] _game is null! Reinitializing.");
+				InitialiseServices();
+			}
+
 			if (_game.Phase != GamePhase.Setup)
 			{
+				Debug.LogWarning($"[GameManager.PlaceShip] Game not in Setup phase: {_game.Phase}");
 				return false;
 			}
 
@@ -199,22 +227,48 @@ namespace ARBattleship.Unity
 
         public void StartGame()
 		{
+			Debug.Log($"[GameManager] StartGame called - Multiplayer flag: {_useMultiplayer}");
 			EnsureMultiplayerSession();
+			
+			// Auto-detect mode: if multiplayerSession exists, use multiplayer; otherwise singleplayer
+			bool hasMultiplayerSession = _multiplayerSession != null;
+			if (_useMultiplayer && !hasMultiplayerSession)
+			{
+				Debug.LogWarning("[GameManager] Multiplayer flag set but no session found - switching to singleplayer");
+				_useMultiplayer = false;
+			}
+			else if (!_useMultiplayer && hasMultiplayerSession)
+			{
+				Debug.LogWarning("[GameManager] Multiplayer session exists but flag not set - switching to multiplayer");
+				_useMultiplayer = true;
+			}
+			
 			if (_useMultiplayer)
 			{
 				if (_multiplayerSession == null)
 				{
-					Debug.LogWarning("[GameManager] Multiplayer session is missing.");
+					Debug.LogError("[GameManager] Multiplayer mode but session is missing - cannot start!");
 					return;
 				}
 
+				Debug.Log("[GameManager] Starting multiplayer game");
 				_multiplayerSession.StartGame();
 				return;
 			}
 
+			// Singleplayer mode
+			Debug.Log("[GameManager] Starting singleplayer game");
+			if (_game == null)
+			{
+				Debug.LogError("[GameManager] _game is null! Reinitializing services.");
+				InitialiseServices();
+			}
+
+			Debug.Log($"[GameManager] Current game phase: {_game.Phase}");
 			if (_game.Phase != GamePhase.Setup)
 			{
-				return;
+				Debug.LogWarning($"[GameManager] Game is not in Setup phase (current: {_game.Phase}). Reinitializing.");
+				InitialiseServices();
 			}
 
 			var placementResult = _enemyPlacementService.PlaceAllShips(_game);
@@ -233,6 +287,7 @@ namespace ARBattleship.Unity
 				return;
 			}
 
+			Debug.Log("[GameManager] Singleplayer game started successfully!");
 			OnGameStarted?.Invoke();
 		}
 
@@ -297,12 +352,36 @@ namespace ARBattleship.Unity
 
         public void ResetGame()
         {
+            Debug.Log("[GameManager] ResetGame called");
             StopAllCoroutines();
-            InitialiseServices();
+            
+            // Auto-detect mode: check if we have a multiplayer session
+            EnsureMultiplayerSession();
+            bool hasMultiplayerSession = _multiplayerSession != null;
+            
+            Debug.Log($"[GameManager] ResetGame - _useMultiplayer: {_useMultiplayer}, hasSession: {hasMultiplayerSession}");
+            
+            if (_useMultiplayer && !hasMultiplayerSession)
+            {
+                Debug.LogWarning("[GameManager] Multiplayer flag set but no session - forcing singleplayer mode");
+                _useMultiplayer = false;
+            }
+            
+            // Always clear session for singleplayer
+            if (!_useMultiplayer)
+            {
+                if (_multiplayerSession != null)
+                {
+                    Debug.Log("[GameManager] Clearing multiplayer session for singleplayer mode");
+                }
+                _multiplayerSession = null;
+                InitialiseServices();
+            }
         }
 
         private void InitialiseServices()
         {
+            Debug.Log($"[GameManager] InitialiseServices - Multiplayer: {_useMultiplayer}");
             _game = new BattleshipGame(_boardSize);
             _gameService = new BattleshipGameService(_game);
             _enemyPlacementService = new EnemyShipPlacementService();
