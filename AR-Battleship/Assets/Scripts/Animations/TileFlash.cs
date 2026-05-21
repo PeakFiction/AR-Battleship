@@ -183,7 +183,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                     float[] shipXSegCoords = new float[] { -0.01f, -0.012f, -0.015f, -0.018f, -0.02f };
                     float[] shipZSegCoords = new float[] { 0.0019f, 0f, 0f, 0f, 0f };
                     float[] shipYRot = new float[] {-90f, -90f, -90f, -90f, 90f};
-                    float[] shipZRot = new float[] { 0f, 0f, 0f, 0f, 0f };
+                    float[] shipZRot = new float[] { 0f, 0f, 0f, 0f, -180f };
                     segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, shipZSegCoords[segmentIndex]);
                 }
@@ -250,9 +250,16 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                 }
                 else if (shipType == "Submarine")
                 {
-                    float[] shipZSegCoords = new float[] {-0.02f, 0.005f, 0.006f};
-                    float[] shipZRot = new float[] { 0f, 180f, 180f };
-                    segment.transform.localRotation = Quaternion.Euler(-90f, 180, shipZRot[segmentIndex]);
+                    float[] shipZSegCoords = new float[] {0.01f, 0.005f, 0.006f};
+                    float[] shipZRot = new float[] { 0f, 180f, -180f };
+                    float[] shipYRot = new float[] { 0f, 180f, 180f };
+                    //float yRot = 180f;
+                    /*if(segmentIndex == 0)
+                    {
+                        yRot = -180f;
+                    }*/
+                    //segment.transform.localRotation = Quaternion.Euler(-90f, 180f, shipZRot[segmentIndex]);
+                    segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(0f, 0.08f, shipZSegCoords[segmentIndex]);
                     //segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
                 }
