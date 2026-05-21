@@ -408,16 +408,32 @@ namespace ARBattleship.Multiplayer.Battleship
 
             int shooterPlayerNumber = _playerMapper.ToPlayerNumber(playerId);
 
+            int? hitSegmentIndex = null;
+            string shipOrientation = null;
+            string shipType = null;
+
+            foreach (var gameEvent in _gameService.ConsumeEvents())
+            {
+                if (gameEvent is ShotFiredEvent shot)
+                {
+                    hitSegmentIndex = shot.HitSegmentIndex;
+                    shipOrientation = shot.ShipOrientation;
+                    shipType = shot.ShipType;
+                }
+                Debug.Log($"Application event: {gameEvent.GetType().Name}");
+            }
+
             ShotResolvedClientRpc(
                 shooterPlayerNumber,
                 x,
                 y,
-                (int)result.Value
+                (int)result.Value,
+                hitSegmentIndex ?? -1,
+                shipOrientation ?? "",
+                shipType ?? ""
             );
 
             TryBroadcastGameOver();
-
-            ConsumeAndLogApplicationEvents();
         }
 
         private void SendShotRejectedToClient(
@@ -447,7 +463,10 @@ namespace ARBattleship.Multiplayer.Battleship
             int shooterPlayerNumber,
             int x,
             int y,
-            int shotOutcomeValue)
+            int shotOutcomeValue,
+            int hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             ShotOutcome outcome = (ShotOutcome)shotOutcomeValue;
 
@@ -455,7 +474,10 @@ namespace ARBattleship.Multiplayer.Battleship
                 shooterPlayerNumber,
                 x,
                 y,
-                outcome
+                outcome,
+                hitSegmentIndex == -1 ? null : hitSegmentIndex,
+                string.IsNullOrEmpty(shipOrientation) ? null : shipOrientation,
+                string.IsNullOrEmpty(shipType) ? null : shipType
             );
         }
 

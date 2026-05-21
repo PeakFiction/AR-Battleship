@@ -146,7 +146,10 @@ namespace ARBattleship.Multiplayer.Battleship
             int shooterPlayerNumber,
             int x,
             int y,
-            ShotOutcome outcome)
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string? shipOrientation,
+            string? shipType)
         {
             if (shooterPlayerNumber == localPlayerNumber)
             {

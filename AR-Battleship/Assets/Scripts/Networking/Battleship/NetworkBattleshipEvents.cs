@@ -13,7 +13,7 @@ namespace ARBattleship.Multiplayer.Battleship
 
         public static event Action<int, GameErrorCode>? ShipPlacementRejected;
 
-        public static event Action<int, int, int, ShotOutcome>? ShotResolved;
+        public static event Action<int, int, int, ShotOutcome, int?, string?, string?>? ShotResolved;
 
         public static event Action<int, int, int, GameErrorCode>? ShotRejected;
 
@@ -56,9 +56,12 @@ namespace ARBattleship.Multiplayer.Battleship
             int shooterPlayerNumber,
             int x,
             int y,
-            ShotOutcome outcome)
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string? shipOrientation,
+            string? shipType)
         {
-            ShotResolved?.Invoke(shooterPlayerNumber, x, y, outcome);
+            ShotResolved?.Invoke(shooterPlayerNumber, x, y, outcome, hitSegmentIndex, shipOrientation, shipType);
         }
 
         public static void RaiseShotRejected(
