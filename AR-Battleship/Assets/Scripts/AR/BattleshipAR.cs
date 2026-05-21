@@ -20,8 +20,7 @@ public class BattleshipAR : MonoBehaviour
     public float offsetZ = 0.15f;
 
     [Header("Visuals")]
-    //public Color gridColor = Color.cyan;
-    //Test
+    public Color gridColor = Color.cyan;
     public Color hoverColor = Color.yellow;
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
@@ -98,16 +97,24 @@ public class BattleshipAR : MonoBehaviour
     void OnEnable()
     {
         GameManager.OnPlayerShotFired += HandlePlayerShot;
+        GameManager.OnEnemyShotFired += HandleEnemyShot;
         GameManager.OnGameOver += HandleGameOver;
     }
 
     void OnDisable()
     {
         GameManager.OnPlayerShotFired -= HandlePlayerShot;
+        GameManager.OnEnemyShotFired -= HandleEnemyShot;
         GameManager.OnGameOver -= HandleGameOver;
     }
 
     void SpawnMissRocket(int col, int row) {
+        if (rocketPrefab == null)
+        {
+            Debug.LogWarning("[AR] rocketPrefab is null - skipping spawn (likely in 2D mode)");
+            return;
+        }
+
         GameObject chosenTile = cellObjects[col, row];
 
         GameObject rocket = Instantiate(rocketPrefab);
@@ -121,6 +128,12 @@ public class BattleshipAR : MonoBehaviour
     }
 
     void SpawnHitRocket(int col, int row, int? hitSegmentIndex, string? shipOrientation, string shipType) {
+        if (hitRocketPrefab == null)
+        {
+            Debug.LogWarning("[AR] hitRocketPrefab is null - skipping spawn (likely in 2D mode)");
+            return;
+        }
+
         GameObject chosenTile = cellObjects[col, row];
 
         GameObject rocket = Instantiate(hitRocketPrefab);
@@ -164,6 +177,15 @@ public class BattleshipAR : MonoBehaviour
         }
         Debug.Log($"[AR] Shot at ({x},{y}) -> {result}");
         Debug.Log($"[AR] Shot at a {shipOrientation} {shipType} at {hitSegmentIndex}");
+    }
+
+    void HandleEnemyShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
+    {
+        Debug.Log($"[AR] Enemy shot at ({x},{y}) -> {result}");
+        
+        // Enemy shots are displayed on the minimap (CombatUI handles this)
+        // AR board only shows player's shots against enemy
+        // Do nothing here - let CombatUI update the minimap
     }
 
     void HandleGameOver(int winnerIndex)
@@ -384,6 +406,9 @@ public class BattleshipAR : MonoBehaviour
 
     void Update()
     {
+        if (hoverIndicator == null)
+            return;
+
         if (!boardTracked)
         {
             hoverIndicator.SetActive(false);
@@ -440,8 +465,8 @@ public class BattleshipAR : MonoBehaviour
                 SetCellColor(
                     previousHoverCell.x,
                     previousHoverCell.y,
-                    originalTileColor,
-                    originalTileColor.a
+                    gridColor,
+                    1f
                 );
             }
 

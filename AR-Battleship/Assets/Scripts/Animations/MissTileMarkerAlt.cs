@@ -11,17 +11,41 @@ public class MissTileMarkerAlt : MonoBehaviour
     private Material missMaterialAlt; // lets you change color
     private bool missAlreadyMarkedAlt = false; // boolean to track if missile hit yet or not 
 
+    void Awake()
+    {
+        missRendererAlt = GetComponent<Renderer>();
+        if (missRendererAlt != null)
+        {
+            missRendererAlt.material = new Material(missRendererAlt.material);
+            missMaterialAlt = missRendererAlt.material;
+        }
+    }
+
     void Start()
     {
-        missRendererAlt = GetComponent<Renderer>(); // lets you get material
-        missRendererAlt.material = new Material(missRendererAlt.material); // makes new instance to change only one tile
-        missMaterialAlt = missRendererAlt.material; 
+        // Fallback if Awake didn't run
+        if (missMaterialAlt == null && missRendererAlt == null)
+        {
+            missRendererAlt = GetComponent<Renderer>();
+            if (missRendererAlt != null)
+            {
+                missRendererAlt.material = new Material(missRendererAlt.material);
+                missMaterialAlt = missRendererAlt.material;
+            }
+        }
+        if (missMaterialAlt == null && missRendererAlt != null)
+        {
+            missMaterialAlt = missRendererAlt.material;
+        }
     }
 
     public void TriggerMissVisualAlt()
     {
         if (missAlreadyMarkedAlt) return;
         missAlreadyMarkedAlt = true; // makes sure tile hasnt been hit before and can only trigger once
+
+        if (!gameObject.activeInHierarchy)
+            gameObject.SetActive(true);
 
         StartCoroutine(RunMissVisualAlt()); // starts routine
     }

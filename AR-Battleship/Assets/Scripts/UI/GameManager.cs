@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using ARBattleship.Core.Domain;
 using ARBattleship.Core.Application;
@@ -287,6 +288,7 @@ namespace ARBattleship.Unity
 				return outcome;
 			}
 
+			Debug.Log($"[GameManager] GameObject active: {gameObject.activeInHierarchy}, enabled: {enabled}");
 			StartCoroutine(TakeAITurnAfterDelay(_aiTurnDelay));
 			return outcome;
 		}
@@ -310,12 +312,15 @@ namespace ARBattleship.Unity
 
         private IEnumerator TakeAITurnAfterDelay(float delay)
         {
+            Debug.Log($"[GameManager] AI turn coroutine started, waiting {delay}s");
             yield return new WaitForSeconds(delay);
+            Debug.Log($"[GameManager] AI turn coroutine delay complete, calling TakeAITurn");
             TakeAITurn();
         }
 
         private void TakeAITurn()
         {
+            Debug.Log($"[GameManager] TakeAITurn called. Phase: {_game.Phase}");
             if (_game.Phase != GamePhase.InProgress) return;
 
             var result = _enemyTurnService.TakeTurn();
@@ -329,6 +334,19 @@ namespace ARBattleship.Unity
 
             var fireResult = result.Value!;
             var outcome = MapOutcome(fireResult.Outcome);
+            Debug.Log($"[GameManager] AI turn completed with outcome: {outcome}");
+            
+            // WORKAROUND: EnemyTurnService.TakeTurn() doesn't generate events
+            // Manually fire OnEnemyShotFired with the result
+            Debug.Log($"[GameManager] Manually firing OnEnemyShotFired: ({fireResult.Coordinate.X},{fireResult.Coordinate.Y}) -> {outcome}");
+            OnEnemyShotFired?.Invoke(
+                fireResult.Coordinate.X, 
+                fireResult.Coordinate.Y, 
+                outcome,
+                null,  // No segment index for enemy shots
+                null,  // No orientation
+                null   // No ship type
+            );
 
             if (_game.IsGameOver)
                 OnGameOver?.Invoke(1);
@@ -336,8 +354,12 @@ namespace ARBattleship.Unity
 
         private void ProcessEvents()
         {
-            foreach (var gameEvent in _gameService.ConsumeEvents())
+            var events = _gameService.ConsumeEvents().ToList();
+            Debug.Log($"[GameManager] ProcessEvents found {events.Count} events");
+            
+            foreach (var gameEvent in events)
             {
+                Debug.Log($"[GameManager] Processing event: {gameEvent.GetType().Name}");
                 switch (gameEvent)
                 {
                     case AnnouncementEvent announcement:
@@ -346,9 +368,15 @@ namespace ARBattleship.Unity
 
                     case ShotFiredEvent shot:
 						if (shot.PlayerId == PlayerId.PlayerOne)
+						{
+							Debug.Log($"[GameManager] Firing OnPlayerShotFired event: ({shot.X},{shot.Y}) -> {shot.Outcome}");
 							OnPlayerShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipType);
+						}
 						else
+						{
+							Debug.Log($"[GameManager] Firing OnEnemyShotFired event: ({shot.X},{shot.Y}) -> {shot.Outcome}");
 							OnEnemyShotFired?.Invoke(shot.X, shot.Y, shot.Outcome, shot.HitSegmentIndex, shot.ShipOrientation, shot.ShipType);
+						}
                         var entry = shot.Outcome switch
                         {
                             ShotOutcome.Hit  => shot.PlayerId == PlayerId.PlayerOne

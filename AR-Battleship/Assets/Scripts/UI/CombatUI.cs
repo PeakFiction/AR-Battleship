@@ -337,12 +337,15 @@ namespace ARBattleship.Unity.UI
 
         private void HandleEnemyShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
+            Debug.Log($"[CombatUI] HandleEnemyShot called: ({x},{y}) -> {outcome}");
+            
             if (IsInsideGrid(x, y) && minimapCells[x][y] != null)
                 minimapCells[x][y].color = outcome == ShotOutcome.Miss ? MissColor : HitColor;
 
             if (outcome != ShotOutcome.Miss)
                 PlayDangerMusicIfPlayerShipHit();
 
+            Debug.Log($"[CombatUI] Current phase: {GameManager.Instance?.CurrentPhase}, Setting turn back to player");
             if (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.InProgress)
                 SetLocalTurn(true, true);
         }

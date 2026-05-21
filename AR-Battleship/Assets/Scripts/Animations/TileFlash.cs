@@ -53,6 +53,9 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
     int segmentIndex,
     string orientation) // Allows coroutine to be triggered from other scripts
     {
+        if (!gameObject.activeInHierarchy)
+            gameObject.SetActive(true);
+        
         StartCoroutine(FlashRoutine(shipType,
     segmentIndex,
     orientation));
