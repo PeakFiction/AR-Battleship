@@ -248,7 +248,7 @@ namespace ARBattleship.Core.Tests.Domain
 
             var result = board.FireAt(new Coordinate(0, 0));
 
-            Assert.That(result.Value!.ShipName, Is.EqualTo("Destroyer"));
+            Assert.That(result.Value!.ShipType, Is.EqualTo("Destroyer"));
         }
 
         [Test]
@@ -272,7 +272,7 @@ namespace ARBattleship.Core.Tests.Domain
             board.FireAt(new Coordinate(0, 0));
             var result = board.FireAt(new Coordinate(1, 0));
 
-            Assert.That(result.Value!.ShipName, Is.EqualTo("Destroyer"));
+            Assert.That(result.Value!.ShipType, Is.EqualTo("Destroyer"));
         }
 
         [Test]

@@ -1,7 +1,173 @@
+#### Note: This submission uses the OPTIONAL Final Team Project submission for build `AR-Battleshipv1.0.apk`.
+
+# AR Battleship – Core Library
+
+## Overview
+
+This is the pure C# domain and application logic for **AR Battleship**, structured following Domain-Driven Design (DDD) principles.  It is compiled as a `.NET Standard 2.1` library and referenced by both the Unity project and the test suite.  It has **no Unity dependencies** — all game logic can be tested with plain NUnit.
+
+---
+
+## How to Build and Run
+
+### Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| .NET SDK | 8.0+ | Used by the test runner |
+| NUnit | 3.x (via NuGet) | Test framework |
+| NUnit3TestAdapter | 4.x | Visual Studio / dotnet test integration |
+
+### Build
+
+```bash
+# From the repository root
+dotnet build Core/Domain
+dotnet build Core/Application
+```
+
+### Run Tests
+
+```bash
+# From the repository root
+dotnet test Core/Tests/Domain.Tests
+dotnet test Core/Tests/Application.Tests
+```
+
+All 212 domain tests and 45 application tests should pass.
+
+### Use from Unity
+
+The compiled `Domain.dll` and `Application.dll` are placed in
+`Application/bin/Debug/netstandard2.1/` and
+`Domain/bin/Debug/netstandard2.1/` respectively.
+
+---
+
+## Project Structure
+
+```
+Core/
+├── Domain/                        Domain layer (no dependencies)
+│   ├── BattleshipGame.cs          Root aggregate — owns both boards, phase, turn
+│   ├── Cell.cs                    Single cell entity (occupancy + shot state)
+│   ├── ComputerEnemy/
+│   │   ├── IEnemyStrategy.cs      AI firing strategy contract
+│   │   └── HuntTargetStrategy.cs  Hunt/Target medium-difficulty AI
+│   ├── Entities/
+│   │   ├── Board.cs               10×10 grid — placement rules, shot processing
+│   │   └── Ship.cs                Ship entity — hits, sunk detection, factory methods
+│   ├── Enums/
+│   │   ├── GamePhase.cs           Setup → InProgress → Finished
+│   │   ├── Orientation.cs         Horizontal / Vertical + GetOffset extension
+│   │   └── ShotResult.cs          Miss / Hit / Sunk (domain level)
+│   ├── Results/
+│   │   ├── FireResult.cs          Immutable shot outcome record (Miss/Hit/Sunk factories)
+│   │   └── Result.cs              Generic domain result: Success(T) or Failure(string)
+│   └── ValueObjects/
+│       ├── Coordinate.cs          Readonly struct — (column, row) board address
+│       ├── PlayerId.cs            Record — PlayerOne / PlayerTwo factory properties
+│       └── ShipId.cs              Readonly struct — Guid-backed unique ship ID
+│
+├── Application/                   Application layer (depends on Domain)
+│   ├── Commands/
+│   │   ├── FireShotCommand.cs     Who fires and where
+│   │   └── ShipPlacementCommand.cs  Who places what ship and where
+│   ├── Common/
+│   │   ├── GameError.cs           Legacy error enum (use GameErrorCode in new code)
+│   │   └── Result.cs              Generic Result<TValue,TError> + GameResult<T>
+│   ├── Enums/
+│   │   ├── CellViewState.cs       Unknown/Empty/Ship/Hit/Miss/Sunk (UI projection)
+│   │   ├── GameErrorCode.cs       Typed failure codes (NotPlayersTurn, ShipOverlap, …)
+│   │   └── ShotOutcome.cs         None/Miss/Hit/Sunk (application / network level)
+│   ├── Events/
+│   │   ├── IGameEvent.cs          Marker interface for all events
+│   │   ├── AnnouncementEvent.cs   Human-readable battle log message
+│   │   ├── GameEndedEvent.cs      Game over — winner recorded
+│   │   ├── ShipPlacedEvent.cs     Ship confirmed placed
+│   │   ├── ShipSunkEvent.cs       Ship confirmed sunk
+│   │   ├── ShotFiredEvent.cs      Shot result with full hit metadata
+│   │   └── TurnChangeEvent.cs     New current-turn player
+│   ├── Services/
+│   │   ├── IBattleshipGameService.cs   Service contract
+│   │   ├── BattleshipGameService.cs    Main service implementation
+│   │   ├── EnemyShipPlacementService.cs  Randomly places AI fleet
+│   │   └── EnemyTurnService.cs     Executes one AI turn via HuntTargetStrategy
+│   └── Snapshots/
+│       ├── CellView.cs            Single-cell projection for the UI
+│       ├── GameSnapshot.cs        Full board state snapshot (both players)
+│       ├── PlayerSnapshot.cs      One player's board cells + ships
+│       └── ShipView.cs            Ship metadata projection
+│
+└── Tests/
+    ├── Application.Tests/         NUnit tests for application services
+    │   ├── BattleshipGameServiceTests.cs
+    │   ├── EnemyShipPlacementServiceTests.cs
+    │   └── EnemyTurnServiceTests.cs
+    └── Domain.Tests/              NUnit tests for domain entities and value objects
+        ├── BattleshipGameTests.cs
+        ├── BoardTests.cs
+        ├── CellTests.cs
+        ├── CoordinateTests.cs
+        ├── FireResultTests.cs
+        ├── HuntTargetStrategyTests.cs
+        ├── Orientation.cs
+        ├── PlayerIdTests.cs
+        ├── ResultTests.cs
+        ├── ShipIdTests.cs
+        ├── ShipTests.cs
+        └── ShotResultTests.cs
+```
+
+---
+
+## Architecture
+
+```
+Unity UI / Multiplayer
+        │
+        │  commands (FireShotCommand, ShipPlacementCommand)
+        │  queries  (GameSnapshot)
+        ▼
+Application Layer (BattleshipGameService)
+        │  validates phase, turn; maps errors; produces events
+        ▼
+Domain Layer (BattleshipGame, Board, Ship, Cell, …)
+        │  enforces invariants; no external dependencies
+        ▼
+Domain Value Objects (Coordinate, PlayerId, ShipId)
+```
+
+All dependencies point inward.  The domain layer knows nothing about Unity,
+networking, or the application layer.
+
+---
+
+## Design Patterns
+
+| Pattern | Where used |
+|---|---|
+| Result monad | `Domain.Result<T>`, `Application.GameResult<T>` — no exceptions for flow control |
+| Factory Method | `Ship.CreateCarrier`, `Ship.CreateFromType`, `PlayerId.PlayerOne` |
+| Command | `FireShotCommand`, `ShipPlacementCommand` — immutable request objects |
+| Domain Event | `IGameEvent` and implementations — decoupled UI notifications |
+| Snapshot | `GameSnapshot` — read-only board projection avoids exposing domain objects |
+| Strategy | `IEnemyStrategy` / `HuntTargetStrategy` — swappable AI difficulty |
+| Value Object | `Coordinate`, `ShipId` — equality by value, not reference |
+
+---
+
+## External Libraries and Sources
+
+| Library | Version | License | Purpose |
+|---|---|---|---|
+| .NET Standard | 2.1 | MIT | Base class library |
+| NUnit | 3.x | MIT | Unit testing framework |
+| NUnit3TestAdapter | 4.x | MIT | `dotnet test` integration |
+
+No third-party game logic, AI libraries, or datasets are used.
+
 # AR Battleship – Unity Client
-
-
-#### Note: This submission uses the OPTIONAL Final Team Project submission for `AR-Battleshipv1.0.apk`.
 
 ## Overview
 
@@ -160,33 +326,6 @@ The first scene should normally be `0SplashScreen` or `0MainMenuScreen`, dependi
 
 ---
 
-## How to Compile the Core DLLs
-
-The Unity project requires the Core assemblies before the Unity scripts can compile.
-
-From the repository root:
-
-```bash
-dotnet build
-```
-
-Then copy the generated assemblies into the Unity project:
-
-```text
-Core/Domain/bin/Debug/netstandard2.1/Domain.dll
-Core/Application/bin/Debug/netstandard2.1/Application.dll
-```
-
-Recommended Unity destination:
-
-```text
-UnityProject/Assets/Plugins/
-```
-
-After copying the DLLs, return to Unity and allow the Editor to recompile scripts.
-
----
-
 ## How to Open and Run in Unity Editor
 
 1. Open **Unity Hub**.
@@ -249,13 +388,12 @@ Multiplayer uses Unity Netcode for GameObjects plus Unity Relay.
 
 ### Host
 
-1. Make sure the Unity project is linked to a Unity Cloud Project.
-2. Make sure Authentication and Relay are enabled/configured in Unity Gaming Services.
-3. Run the project.
-4. Navigate to the multiplayer lobby flow.
-5. Choose the host/create-lobby path.
-6. `RelayManager` initializes Unity Services, signs in anonymously, creates a Relay allocation, starts the Netcode host, and displays a join code.
-7. Share the join code with the second player.
+1. Make sure Authentication and Relay are enabled/configured in Unity Gaming Services.
+2. Run the project.
+3. Navigate to the multiplayer lobby flow.
+4. Choose the host/create-lobby path.
+5. `RelayManager` initializes Unity Services, signs in anonymously, creates a Relay allocation, starts the Netcode host, and displays a join code.
+6. Share the join code with the second player.
 
 ### Client
 
@@ -336,25 +474,6 @@ Then launch the app from the Android device.
 
 For AR gameplay, give the app camera permission when Android prompts for it.
 
----
-
-## Build Output
-
-The main distributable produced by Unity is:
-
-```text
-ARBattleship.apk
-```
-
-This APK can be uploaded as the runnable implementation for Android devices. If the project is also hosted online or has a downloadable release page, add the URL here:
-
-```text
-Live / release URL: TODO
-APK download URL: TODO
-```
-
----
-
 ## Troubleshooting
 
 | Problem | Fix |
@@ -364,5 +483,5 @@ APK download URL: TODO
 | AR camera does not track the board | Check Vuforia license key, target database activation, AR Camera setup, image target assignment, and Android camera permission. |
 | Android build fails | Make sure Android Build Support, SDK/NDK Tools, and OpenJDK are installed through Unity Hub. |
 | Multiplayer host/client fails | Confirm Unity Services is initialized, the project is linked to Unity Cloud, Authentication and Relay are enabled, and the NetworkManager has Unity Transport assigned. |
-| Client cannot join lobby | Verify the join code, both builds use the same Unity project/service environment, and the host is still running. |
+| Client cannot join lobby | Verify the join code or refresh the code, both builds use the same Unity project/service environment, and the host is still running. |
 | Scene buttons do nothing or load errors occur | Confirm every named scene is in Build Settings and the scene names match the strings in `SceneLoader.cs` and `RelayManager.cs`. |

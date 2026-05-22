@@ -22,11 +22,11 @@ namespace ARBattleship.Core.Tests.Domain
         {
             var fleet = new (System.Func<ShipId, IEnumerable<Coordinate>, Ship> Factory, int Size)[]
             {
-                (Ship.CreateCarrier,    5),
-                (Ship.CreateBattleship, 4),
-                (Ship.CreateCruiser,    3),
-                (Ship.CreateSubmarine,  3),
-                (Ship.CreateDestroyer,  2),
+                ((id, pos) => Ship.CreateCarrier(id, pos),    5),
+                ((id, pos) => Ship.CreateBattleship(id, pos), 4),
+                ((id, pos) => Ship.CreateCruiser(id, pos),    3),
+                ((id, pos) => Ship.CreateSubmarine(id, pos),  3),
+                ((id, pos) => Ship.CreateDestroyer(id, pos),  2),
             };
 
             for (int i = 0; i < fleet.Length; i++)

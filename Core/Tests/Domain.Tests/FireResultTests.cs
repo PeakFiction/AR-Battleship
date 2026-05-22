@@ -34,7 +34,7 @@ namespace ARBattleship.Core.Tests.Domain
         public void Miss_ValidCoordinate_ShipNameIsNull()
         {
             var result = FireResult.Miss(TestCoord);
-            Assert.That(result.ShipName, Is.Null);
+            Assert.That(result.ShipType, Is.Null);
         }
 
         [Test]
@@ -54,14 +54,14 @@ namespace ARBattleship.Core.Tests.Domain
         [Test]
         public void Hit_ValidArgs_OutcomeIsHit()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer", null, null);
             Assert.That(result.Outcome, Is.EqualTo(ShotResult.Hit));
         }
 
         [Test]
         public void Hit_ValidArgs_CoordinateIsSet()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer", null, null);
             Assert.That(result.Coordinate, Is.EqualTo(TestCoord));
         }
 
@@ -69,42 +69,42 @@ namespace ARBattleship.Core.Tests.Domain
         public void Hit_ValidArgs_ShipIdIsSet()
         {
             var id = MakeShipId();
-            var result = FireResult.Hit(TestCoord, id, "Destroyer");
+            var result = FireResult.Hit(TestCoord, id, "Destroyer", null, null);
             Assert.That(result.ShipId, Is.EqualTo(id));
         }
 
         [Test]
         public void Hit_ValidArgs_ShipNameIsSet()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer");
-            Assert.That(result.ShipName, Is.EqualTo("Destroyer"));
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer", null, null);
+            Assert.That(result.ShipType, Is.EqualTo("Destroyer"));
         }
 
         [Test]
         public void Hit_ValidArgs_IsHitIsTrue()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer", null, null);
             Assert.That(result.IsHit, Is.True);
         }
 
         [Test]
         public void Hit_ValidArgs_IsSunkIsFalse()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Destroyer", null, null);
             Assert.That(result.IsSunk, Is.False);
         }
 
         [Test]
         public void Sunk_ValidArgs_OutcomeIsSunk()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier", null, null);
             Assert.That(result.Outcome, Is.EqualTo(ShotResult.Sunk));
         }
 
         [Test]
         public void Sunk_ValidArgs_CoordinateIsSet()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier", null, null);
             Assert.That(result.Coordinate, Is.EqualTo(TestCoord));
         }
 
@@ -112,28 +112,28 @@ namespace ARBattleship.Core.Tests.Domain
         public void Sunk_ValidArgs_ShipIdIsSet()
         {
             var id = MakeShipId();
-            var result = FireResult.Sunk(TestCoord, id, "Carrier");
+            var result = FireResult.Sunk(TestCoord, id, "Carrier", null, null);
             Assert.That(result.ShipId, Is.EqualTo(id));
         }
 
         [Test]
         public void Sunk_ValidArgs_ShipNameIsSet()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier");
-            Assert.That(result.ShipName, Is.EqualTo("Carrier"));
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier", null, null);
+            Assert.That(result.ShipType, Is.EqualTo("Carrier"));
         }
 
         [Test]
         public void Sunk_ValidArgs_IsHitIsTrue()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier", null, null);
             Assert.That(result.IsHit, Is.True);
         }
 
         [Test]
         public void Sunk_ValidArgs_IsSunkIsTrue()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Carrier", null, null);
             Assert.That(result.IsSunk, Is.True);
         }
 
@@ -147,14 +147,14 @@ namespace ARBattleship.Core.Tests.Domain
         [Test]
         public void IsHit_OutcomeIsHit_ReturnsTrue()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Battleship");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Battleship", null, null);
             Assert.That(result.IsHit, Is.True);
         }
 
         [Test]
         public void IsHit_OutcomeIsSunk_ReturnsTrue()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Battleship");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Battleship", null, null);
             Assert.That(result.IsHit, Is.True);
         }
 
@@ -168,14 +168,14 @@ namespace ARBattleship.Core.Tests.Domain
         [Test]
         public void IsSunk_OutcomeIsHit_ReturnsFalse()
         {
-            var result = FireResult.Hit(TestCoord, MakeShipId(), "Submarine");
+            var result = FireResult.Hit(TestCoord, MakeShipId(), "Submarine", null, null);
             Assert.That(result.IsSunk, Is.False);
         }
 
         [Test]
         public void IsSunk_OutcomeIsSunk_ReturnsTrue()
         {
-            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Submarine");
+            var result = FireResult.Sunk(TestCoord, MakeShipId(), "Submarine", null, null);
             Assert.That(result.IsSunk, Is.True);
         }
     }
