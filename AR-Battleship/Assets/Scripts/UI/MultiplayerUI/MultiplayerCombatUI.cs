@@ -11,16 +11,13 @@ using ARBattleship.Multiplayer.Battleship;
 namespace ARBattleship.Unity.UI
 {
     /// <summary>
-    /// Singleplayer gameplay UI for AR mode.
-    ///
-    /// Inspector model:
-    /// 1. The AR board remains the real gameplay surface.
-    /// 2. The generated 2D enemy board is an optional toggle overlay.
-    /// 3. The minimap fills a square RectTransform that you place in Canvas.
-    /// 4. Figma art objects are assigned as static panels; only dynamic TMP text / pips are generated or assigned.
+    /// Gameplay UI for AR mode.
     /// </summary>
     public sealed class MultiplayerCombatUI : MonoBehaviour
     {
+        /// <summary>
+        /// Stores a confirmed local ship placement so the combat minimap can be reconstructed when the battle begins.
+        /// </summary>
         private sealed class LocalShipPlacement
         {
             public string ShipType;
@@ -43,80 +40,56 @@ namespace ARBattleship.Unity.UI
         [SerializeField] private float turnIndicatorSeconds = 1.15f;
 
         [Header("1 - Enemy 2D Board Toggle Overlay")]
-        [Tooltip("Your hamburger/menu button. This toggles the generated 2D enemy board on/off.")]
         [SerializeField] private Button enemyBoardToggleButton;
 
-        [Tooltip("Parent RectTransform for the generated 2D enemy board. Create an empty UI object where you want the board to live. If empty, Canvas is used.")]
         [SerializeField] private RectTransform enemyBoardOverlayParent;
 
-        [Tooltip("Show the 2D board immediately when gameplay starts. For AR gameplay this is usually false.")]
         [SerializeField] private bool showEnemyBoardOnGameStart = false;
 
         [Header("0.5 - Combat UI Visibility")]
-        [Tooltip("CanvasGroup that controls the full combat HUD/root. If empty, the script uses or creates one on this GameObject. Keep the script GameObject active; this only fades/disables UI interaction.")]
         [SerializeField] private CanvasGroup combatUiCanvasGroup;
 
-        [Tooltip("Hide the combat HUD while players are still in ship placement. This prevents multiplayer placement UI from overlaying on top of gameplay UI.")]
         [SerializeField] private bool hideCombatUiUntilBattleStarted = true;
 
-        [Tooltip("Usually false. When hidden, the combat UI should not block touches meant for ship placement.")]
         [SerializeField] private bool combatUiBlocksRaycastsWhenHidden = false;
 
-        [Tooltip("Cell size for the generated 2D board. Increase this to make the overlay board bigger.")]
         [SerializeField] private float enemyBoardCellSize = 44f;
 
-        [Tooltip("Position of the generated board relative to Enemy Board Overlay Parent.")]
         [SerializeField] private Vector2 enemyBoardAnchoredPosition = Vector2.zero;
 
-        [Tooltip("Font size for A-J and 1-10 labels on the generated 2D board.")]
         [SerializeField] private int enemyBoardLabelFontSize = 16;
 
         [Header("2 - Minimap Slot")]
-        [Tooltip("Square UI RectTransform that defines the minimap size and position. The minimap will fill this object.")]
         [SerializeField] private RectTransform minimapSlot;
 
-        [Tooltip("Padding inside Minimap Slot. Use 0 if the slot already has the exact desired size.")]
         [SerializeField] private float minimapPadding = 0f;
 
-        [Tooltip("Gap between minimap cells.")]
         [SerializeField] private float minimapCellGap = 1.5f;
 
         [Header("3 - Enemy Fleet Figma Panel")]
-        [Tooltip("Your Figma Enemy Fleet component root. It should contain only the ENEMY FLEET art and the LOG button art.")]
         [SerializeField] private GameObject enemyFleetFigmaRoot;
 
-        [Tooltip("The actual Button component for the LOG button inside the Figma Enemy Fleet component.")]
         [SerializeField] private Button enemyFleetLogButton;
 
-        [Tooltip("Optional TMP text for '5 REMAINING'. Leave empty to generate it under Dynamic Root.")]
         [SerializeField] private TextMeshProUGUI enemyFleetRemainingText;
 
-        [Tooltip("Parent for generated '5 REMAINING' text and red blocks. If empty, Enemy Fleet Figma Root is used.")]
         [SerializeField] private RectTransform enemyFleetDynamicRoot;
 
-        [Tooltip("Optional parent for generated red fleet blocks. If empty, Dynamic Root is used.")]
         [SerializeField] private RectTransform enemyFleetPipsParent;
 
-        [Tooltip("Optional sprite from your Canvas UI for each red block. If empty, solid Image blocks are generated.")]
         [SerializeField] private Sprite enemyFleetPipSprite;
 
-        [Tooltip("Position for generated '5 REMAINING' if Remaining Text is not assigned.")]
         [SerializeField] private Vector2 generatedRemainingTextPosition = new Vector2(0f, -42f);
 
-        [Tooltip("Size for generated '5 REMAINING' if Remaining Text is not assigned.")]
         [SerializeField] private Vector2 generatedRemainingTextSize = new Vector2(170f, 28f);
 
-        [Tooltip("Top-left position for the generated fleet blocks.")]
         [SerializeField] private Vector2 generatedPipsStartPosition = new Vector2(0f, -72f);
 
-        [Tooltip("Size of each generated fleet block.")]
         [SerializeField] private Vector2 generatedPipSize = new Vector2(16f, 16f);
 
-        [Tooltip("Horizontal spacing between generated fleet blocks.")]
         [SerializeField] private float generatedPipSpacing = 22f;
 
         [Header("4 - Log Popup Figma Panel")]
-        [Tooltip("Your full Figma Log popup root, including LOG title art, black box, border, and X button art.")]
         [SerializeField] private GameObject logPopupFigmaRoot;
 
         [Tooltip("The actual Button component for the X close button inside the Log popup.")]
@@ -224,12 +197,14 @@ namespace ARBattleship.Unity.UI
         [Tooltip("Switch to danger music when the opponent hits one of your ships. Misses do not change the music.")]
         [SerializeField] private bool switchToDangerMusicWhenLocalShipHit = true;
 
+        // Runtime references for generated combat panels and cached UI state.
         private GameObject combatPanel;
         private GameObject minimapPanel;
         private GameObject enemyFleetPanel;
         private GameObject logPopupPanel;
         private GameObject turnIndicatorPanel;
 
+        // Generated board/minimap widgets are stored so they can be repainted after each network event.
         private readonly Button[][] enemyGridButtons = new Button[10][];
         private readonly Image[][] minimapCells = new Image[10][];
         private readonly Image[] generatedEnemyFleetPips = new Image[5];
@@ -243,6 +218,7 @@ namespace ARBattleship.Unity.UI
         private readonly HashSet<string> requestedShots = new HashSet<string>();
         private readonly HashSet<string> resolvedShots = new HashSet<string>();
 
+        // Local combat state mirrors the authoritative multiplayer events received from the session.
         private int remainingEnemyShips = 5;
         private int localPlayerNumber;
         private bool battleStarted;
@@ -261,6 +237,9 @@ namespace ARBattleship.Unity.UI
         private static readonly Color EnemyFleetLiveColor = new Color(0.85f, 0.08f, 0.08f, 1f);
         private static readonly Color EnemyFleetSunkColor = new Color(0.22f, 0.22f, 0.22f, 1f);
 
+        /// <summary>
+        /// Subscribes to multiplayer gameplay events used to keep the combat HUD in sync with the network session.
+        /// </summary>
         private void OnEnable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
@@ -271,6 +250,9 @@ namespace ARBattleship.Unity.UI
             NetworkBattleshipEvents.GameOver += OnGameOver;
         }
 
+        /// <summary>
+        /// Unsubscribes from multiplayer gameplay events and restores time scale when the HUD is disabled.
+        /// </summary>
         private void OnDisable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
@@ -284,6 +266,9 @@ namespace ARBattleship.Unity.UI
                 Time.timeScale = 1f;
         }
 
+        /// <summary>
+        /// Builds missing generated UI pieces, binds buttons, and applies the initial hidden or visible combat state.
+        /// </summary>
         private void Start()
         {
             BuildCombatUI();
@@ -314,6 +299,9 @@ namespace ARBattleship.Unity.UI
             if (gameOverOverlayRoot != null) gameOverOverlayRoot.SetActive(false);
         }
 
+        /// <summary>
+        /// Finds or creates the CanvasGroup used to hide the combat HUD without destroying it.
+        /// </summary>
         private void EnsureCombatUiCanvasGroup()
         {
             if (combatUiCanvasGroup != null)
@@ -324,6 +312,9 @@ namespace ARBattleship.Unity.UI
                 combatUiCanvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
 
+        /// <summary>
+        /// Shows or hides the combat HUD and controls whether it can block raycasts while hidden.
+        /// </summary>
         private void SetCombatUiVisible(bool visible)
         {
             EnsureCombatUiCanvasGroup();
@@ -336,12 +327,18 @@ namespace ARBattleship.Unity.UI
             combatUiCanvasGroup.blocksRaycasts = visible || combatUiBlocksRaycastsWhenHidden;
         }
 
+        /// <summary>
+        /// Stores the local player number assigned by the multiplayer session.
+        /// </summary>
         private void OnLocalPlayerAssigned(int playerNumber)
         {
             localPlayerNumber = playerNumber;
             AddBattleLog($"You are Player {playerNumber}.");
         }
 
+        /// <summary>
+        /// Initialises combat HUD state once both players have completed placement and the battle starts.
+        /// </summary>
         private void OnBattleStarted(int startingPlayerNumber)
         {
             battleStarted = true;
@@ -370,6 +367,9 @@ namespace ARBattleship.Unity.UI
             AddBattleLog($"Battle started. Player {startingPlayerNumber} goes first.");
         }
 
+        /// <summary>
+        /// Records accepted local ship placements so the minimap can show the player's fleet.
+        /// </summary>
         private void OnShipPlacementAccepted(int playerNumber, string shipType, int startX, int startY, int orientationValue)
         {
             if (playerNumber != localPlayerNumber)
@@ -383,7 +383,17 @@ namespace ARBattleship.Unity.UI
             AddBattleLog($"Your {shipType} was placed on the minimap.");
         }
 
-        private void OnShotResolved(int shooterPlayerNumber, int x, int y, ShotOutcome outcome)
+        /// <summary>
+        /// Applies the visual and log updates for a completed shot, including hit, miss, sunk, and turn changes.
+        /// </summary>
+        private void OnShotResolved(
+            int shooterPlayerNumber,
+            int x,
+            int y,
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             bool localPlayerFired = shooterPlayerNumber == localPlayerNumber;
             Color color = outcome == ShotOutcome.Miss ? MissColor : HitColor;
@@ -418,6 +428,9 @@ namespace ARBattleship.Unity.UI
             SetLocalTurn(true, true);
         }
 
+        /// <summary>
+        /// Clears a pending shot and logs the reason when the server rejects a fire request.
+        /// </summary>
         private void OnShotRejected(int shooterPlayerNumber, int x, int y, GameErrorCode errorCode)
         {
             if (shooterPlayerNumber != localPlayerNumber)
@@ -428,6 +441,9 @@ namespace ARBattleship.Unity.UI
             AddBattleLog($"Shot rejected at ({x},{y}): {errorCode}");
         }
 
+        /// <summary>
+        /// Shows the game-over state, plays the correct music, and prevents further enemy-board input.
+        /// </summary>
         private void OnGameOver(int winnerPlayerNumber)
         {
             battleStarted = false;
@@ -450,6 +466,9 @@ namespace ARBattleship.Unity.UI
             SetGameOverOverlay(true, playerWon);
         }
 
+        /// <summary>
+        /// Switches the background audio to the normal combat track when battle begins.
+        /// </summary>
         private void PlayGameplayMusic()
         {
             if (!controlCombatMusic || global::MusicManager.Instance == null)
@@ -458,6 +477,9 @@ namespace ARBattleship.Unity.UI
             global::MusicManager.Instance.PlayGameplayMusic();
         }
 
+        /// <summary>
+        /// Switches to danger music the first time the local player's own ship is hit.
+        /// </summary>
         private void PlayDangerMusicIfLocalShipHit()
         {
             if (!controlCombatMusic || !switchToDangerMusicWhenLocalShipHit)
@@ -472,6 +494,9 @@ namespace ARBattleship.Unity.UI
                 global::MusicManager.Instance.PlayDangerMusic();
         }
 
+        /// <summary>
+        /// Switches to the victory or defeat track depending on the local player's result.
+        /// </summary>
         private void PlayGameOverMusic(bool playerWon)
         {
             if (!controlCombatMusic || global::MusicManager.Instance == null)
@@ -483,6 +508,9 @@ namespace ARBattleship.Unity.UI
                 global::MusicManager.Instance.PlayLossMusic();
         }
 
+        /// <summary>
+        /// Adds a new message to the in-memory battle log and refreshes the visible log text.
+        /// </summary>
         private void AddBattleLog(string entry)
         {
             if (string.IsNullOrWhiteSpace(entry)) return;
@@ -495,6 +523,9 @@ namespace ARBattleship.Unity.UI
             Debug.Log($"[MultiplayerCombatUI] {entry}");
         }
 
+        /// <summary>
+        /// Sends a fire request for the selected enemy grid cell when it is the local player's turn.
+        /// </summary>
         private void OnCellClicked(int x, int y)
         {
             if (isPaused || isGameOver)
@@ -543,6 +574,9 @@ namespace ARBattleship.Unity.UI
             session.FireShot(x, y);
         }
 
+        /// <summary>
+        /// Colours every minimap cell occupied by a stored local ship placement.
+        /// </summary>
         private void ColorShipOnMinimap(string shipType, Coordinate start, Orientation orientation, Color color)
         {
             if (minimapCells == null)
@@ -566,11 +600,17 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Builds a stable string key for tracking requested or resolved grid coordinates.
+        /// </summary>
         private string MakeKey(int x, int y)
         {
             return x + "," + y;
         }
 
+        /// <summary>
+        /// Repaints the minimap from the local player's confirmed ship placements.
+        /// </summary>
         private void RefreshMinimap()
         {
             // Redraw local ship placements after minimap resets. In multiplayer,
@@ -579,6 +619,9 @@ namespace ARBattleship.Unity.UI
                 ColorShipOnMinimap(placement.ShipType, placement.Start, placement.Orientation, ShipColor);
         }
 
+        /// <summary>
+        /// Adds or replaces a local ship placement after server confirmation.
+        /// </summary>
         private void StoreLocalShipPlacement(string shipType, Coordinate start, Orientation orientation)
         {
             if (string.IsNullOrWhiteSpace(shipType))
@@ -594,6 +637,9 @@ namespace ARBattleship.Unity.UI
         }
 
 
+        /// <summary>
+        /// Updates local turn state and optionally displays the temporary turn indicator.
+        /// </summary>
         private void SetLocalTurn(bool isMyTurn, bool showIndicator)
         {
             isLocalPlayerTurn = isMyTurn;
@@ -603,6 +649,9 @@ namespace ARBattleship.Unity.UI
                 ShowTurnIndicator(isMyTurn);
         }
 
+        /// <summary>
+        /// Enables enemy grid buttons only while the local player is allowed to shoot.
+        /// </summary>
         private void SetEnemyGridInteractable(bool interactable)
         {
             for (int x = 0; x < 10; x++)
@@ -624,6 +673,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Displays the temporary turn popup using sprites or fallback text.
+        /// </summary>
         private void ShowTurnIndicator(bool isPlayerTurn)
         {
             UpdateTopRightTurnStatus(isPlayerTurn);
@@ -650,6 +702,9 @@ namespace ARBattleship.Unity.UI
             turnIndicatorRoutine = StartCoroutine(ShowTurnIndicatorRoutine());
         }
 
+        /// <summary>
+        /// Updates the persistent top-right turn-status HUD image.
+        /// </summary>
         private void UpdateTopRightTurnStatus(bool isPlayerTurn)
         {
             if (topRightTurnStatusImage == null)
@@ -673,6 +728,9 @@ namespace ARBattleship.Unity.UI
             topRightTurnStatusImage.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Automatically hides the temporary turn indicator after the configured delay.
+        /// </summary>
         private IEnumerator ShowTurnIndicatorRoutine()
         {
             turnIndicatorPanel.SetActive(true);
@@ -681,17 +739,26 @@ namespace ARBattleship.Unity.UI
             turnIndicatorRoutine = null;
         }
 
+        /// <summary>
+        /// Shows or hides the generated 2D enemy board overlay.
+        /// </summary>
         private void ToggleEnemyBoard()
         {
             SetGridVisible(!enemyBoardVisible);
         }
 
+        /// <summary>
+        /// Shows or hides the battle log popup.
+        /// </summary>
         private void ToggleLogPopup()
         {
             if (logPopupPanel != null)
                 logPopupPanel.SetActive(!logPopupPanel.activeSelf);
         }
 
+        /// <summary>
+        /// Updates the enemy fleet counter and remaining-ship pips.
+        /// </summary>
         private void RefreshEnemyFleetIndicator()
         {
             if (enemyFleetRemainingText != null)
@@ -704,12 +771,18 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Reduces the displayed enemy fleet count after a ship is sunk.
+        /// </summary>
         private void MarkEnemyFleetShipSunk()
         {
             remainingEnemyShips = Mathf.Max(0, remainingEnemyShips - 1);
             RefreshEnemyFleetIndicator();
         }
 
+        /// <summary>
+        /// Externally exposes visibility control for the generated enemy grid panel.
+        /// </summary>
         public void SetGridVisible(bool visible)
         {
             enemyBoardVisible = visible;
@@ -718,12 +791,18 @@ namespace ARBattleship.Unity.UI
                 combatPanel.SetActive(visible);
         }
 
+        /// <summary>
+        /// Writes all stored battle log entries into the popup text field.
+        /// </summary>
         private void RefreshLogText()
         {
             if (logPopupText == null) return;
             logPopupText.text = string.Join("\n\n", battleLogEntries);
         }
 
+        /// <summary>
+        /// Returns every generated enemy grid cell to its default colour and interaction state.
+        /// </summary>
         private void ResetEnemyGridVisuals()
         {
             for (int x = 0; x < 10; x++)
@@ -738,6 +817,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Clears the minimap before repainting local ship locations.
+        /// </summary>
         private void ResetMinimapVisuals()
         {
             for (int x = 0; x < 10; x++)
@@ -751,6 +833,9 @@ namespace ARBattleship.Unity.UI
         }
 
 
+        /// <summary>
+        /// Connects pause overlay buttons and hides the overlay until it is needed.
+        /// </summary>
         private void BindPauseOverlayUI()
         {
             if (pauseOverlayRoot != null)
@@ -775,6 +860,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Shows the pause overlay and optionally closes the battle log popup.
+        /// </summary>
         private void OpenPauseOverlay()
         {
             if (isGameOver) return;
@@ -787,11 +875,17 @@ namespace ARBattleship.Unity.UI
             SetPaused(true);
         }
 
+        /// <summary>
+        /// Hides the pause overlay and resumes normal gameplay timing.
+        /// </summary>
         private void ClosePauseOverlay()
         {
             SetPaused(false);
         }
 
+        /// <summary>
+        /// Applies the pause state and optionally freezes Unity time.
+        /// </summary>
         private void SetPaused(bool paused)
         {
             isPaused = paused;
@@ -808,6 +902,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Stops the multiplayer session and returns to the configured abort scene.
+        /// </summary>
         private void AbortMission()
         {
             SetPaused(false);
@@ -817,6 +914,9 @@ namespace ARBattleship.Unity.UI
         }
 
 
+        /// <summary>
+        /// Connects game-over overlay buttons and hides the overlay at startup.
+        /// </summary>
         private void BindGameOverOverlayUI()
         {
             if (gameOverOverlayRoot != null)
@@ -835,6 +935,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Shows or hides the game-over overlay and optionally freezes time.
+        /// </summary>
         private void SetGameOverOverlay(bool visible, bool playerWon)
         {
             isGameOver = visible;
@@ -851,6 +954,9 @@ namespace ARBattleship.Unity.UI
                 Time.timeScale = visible ? 0f : 1f;
         }
 
+        /// <summary>
+        /// Applies victory or defeat sprites to the configured game-over artwork.
+        /// </summary>
         private void ApplyGameOverVisuals(bool playerWon)
         {
             if (gameOverPopupImage != null)
@@ -877,6 +983,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Resets networking/gameplay state and reloads the scene or configured rematch scene.
+        /// </summary>
         private void RematchGame()
         {
             SetGameOverOverlay(false, false);
@@ -893,6 +1002,9 @@ namespace ARBattleship.Unity.UI
                 SceneManager.LoadScene(rematchSceneName);
         }
 
+        /// <summary>
+        /// Stops the multiplayer session and returns to the configured menu scene.
+        /// </summary>
         private void ReturnFromGameOver()
         {
             SetGameOverOverlay(false, false);
@@ -902,6 +1014,9 @@ namespace ARBattleship.Unity.UI
                 SceneManager.LoadScene(returnSceneName);
         }
 
+        /// <summary>
+        /// Builds the generated enemy-board and fallback UI elements when they are not provided in the scene.
+        /// </summary>
         private void BuildCombatUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -936,6 +1051,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Creates row or column labels for a generated grid.
+        /// </summary>
         private void BuildGridLabels(Transform parent, float startX, float startY, float cellSize, int fontSize)
         {
             for (int x = 0; x < 10; x++)
@@ -945,6 +1063,9 @@ namespace ARBattleship.Unity.UI
                 CreateTMP(parent, ((char)('A' + y)).ToString(), new Vector2(startX - cellSize * 0.72f, startY - y * cellSize), new Vector2(24, cellSize), fontSize, TextAlignmentOptions.Center);
         }
 
+        /// <summary>
+        /// Creates the generated minimap panel and cells inside the assigned minimap slot.
+        /// </summary>
         private void BuildMinimapUI()
         {
             Canvas.ForceUpdateCanvases();
@@ -1004,6 +1125,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Configures enemy fleet panel references, buttons, text, and generated pips.
+        /// </summary>
         private void BindEnemyFleetUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -1066,6 +1190,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Configures the battle log popup and creates fallback scrollable log text when needed.
+        /// </summary>
         private void BindLogPopupUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -1103,6 +1230,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Creates a scrollable TMP log area inside the supplied parent RectTransform.
+        /// </summary>
         private TextMeshProUGUI CreateGeneratedScrollableLog(RectTransform parent)
         {
             GameObject viewport = new GameObject("Generated_LogViewport");
@@ -1147,6 +1277,9 @@ namespace ARBattleship.Unity.UI
             return text;
         }
 
+        /// <summary>
+        /// Configures the temporary turn indicator and hides it at startup.
+        /// </summary>
         private void BindTurnIndicatorUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -1184,6 +1317,9 @@ namespace ARBattleship.Unity.UI
             turnIndicatorText = CreateTMP(turnIndicatorPanel.transform, "YOUR TURN", Vector2.zero, new Vector2(900, 90), 54, TextAlignmentOptions.Center, true);
         }
 
+        /// <summary>
+        /// Creates a generated UI button with a TMP label for fallback combat UI.
+        /// </summary>
         private GameObject CreateButton(Transform parent, string label, Vector2 anchoredPos, Vector2 size)
         {
             GameObject obj = new GameObject(string.IsNullOrEmpty(label) ? "Button" : label);
@@ -1201,6 +1337,9 @@ namespace ARBattleship.Unity.UI
             return obj;
         }
 
+        /// <summary>
+        /// Creates a generated TextMeshProUGUI element with consistent RectTransform settings.
+        /// </summary>
         private TextMeshProUGUI CreateTMP(Transform parent, string value, Vector2 anchoredPos, Vector2 size, int fontSize, TextAlignmentOptions alignment, bool bold = false)
         {
             GameObject obj = new GameObject("TMP_" + value);
@@ -1222,6 +1361,9 @@ namespace ARBattleship.Unity.UI
             return text;
         }
 
+        /// <summary>
+        /// Adds a Unity UI outline effect to generated text or button objects.
+        /// </summary>
         private void AddOutline(GameObject obj, Color color, Vector2 effectDistance)
         {
             Outline outline = obj.AddComponent<Outline>();
@@ -1229,6 +1371,9 @@ namespace ARBattleship.Unity.UI
             outline.effectDistance = effectDistance;
         }
 
+        /// <summary>
+        /// Returns the current RectTransform size while safely handling missing references.
+        /// </summary>
         private static Vector2 GetRectSize(RectTransform rt)
         {
             if (rt == null) return new Vector2(170f, 170f);
@@ -1240,6 +1385,9 @@ namespace ARBattleship.Unity.UI
             return size;
         }
 
+        /// <summary>
+        /// Checks whether a coordinate is inside the 10 by 10 battleship grid.
+        /// </summary>
         private static bool IsInsideGrid(int x, int y)
         {
             return x >= 0 && x < 10 && y >= 0 && y < 10;

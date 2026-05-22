@@ -1,6 +1,12 @@
+// Server-authoritative multiplayer controller for Battleship gameplay.
+// Public request methods can be called by local UI/session scripts. The server
+// validates those requests against the application-layer game service and then
+// broadcasts results back to clients through ClientRpc methods.
+
 using ARBattleship.Core.Application.Commands;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Core.Application.Services;
+using ARBattleship.Core.Application.Events;
 using ARBattleship.Core.Domain;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,17 +14,27 @@ using System.Collections.Generic;
 
 namespace ARBattleship.Multiplayer.Battleship
 {
+    /// <summary>
+    /// Owns the network-facing Battleship gameplay flow for player assignment,
+    /// ship placement, battle start, shot resolution, and game-over broadcasts.
+    /// </summary>
     public sealed class NetworkBattleshipGameController : NetworkBehaviour
     {
+        // Converts Unity Netcode client IDs into domain-level player identities.
         private readonly NetworkPlayerMapper _playerMapper = new();
 
+        // Server-side domain game and application service. These should only be
+        // created and mutated by the server.
         private BattleshipGame _game;
         private BattleshipGameService _gameService;
+        // Prevents duplicate GameOver events when multiple end-game checks happen.
         private bool _gameOverBroadcasted = false;
+        // Tracks which connected clients have requested to start the game.
         private readonly HashSet<ulong> _readyPlayers = new();
 
         public override void OnNetworkSpawn()
         {
+            // Only the server owns the authoritative game state and player mapping.
             if (!IsServer)
             {
                 return;
@@ -27,6 +43,7 @@ namespace ARBattleship.Multiplayer.Battleship
             InitialiseServerGame();
             RegisterExistingPlayers();
 
+            // Keep player assignments updated as clients connect and disconnect.
             NetworkManager.Singleton.OnClientConnectedCallback += RegisterPlayer;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnPlayerDisconnected;
         }
@@ -40,6 +57,9 @@ namespace ARBattleship.Multiplayer.Battleship
             }
         }
 
+        /// <summary>
+        /// Creates a fresh server-side Battleship game and application service.
+        /// </summary>
         private void InitialiseServerGame()
         {
             _game = new BattleshipGame();
@@ -47,6 +67,9 @@ namespace ARBattleship.Multiplayer.Battleship
             _gameOverBroadcasted = false;
         }
 
+        /// <summary>
+        /// Assigns players that are already connected when this network object spawns.
+        /// </summary>
         private void RegisterExistingPlayers()
         {
             ulong hostClientId = NetworkManager.Singleton.LocalClientId;
@@ -63,6 +86,9 @@ namespace ARBattleship.Multiplayer.Battleship
             }
         }
 
+        /// <summary>
+        /// Registers a connected Netcode client as Player 1 or Player 2.
+        /// </summary>
         private void RegisterPlayer(ulong clientId)
         {
             bool registered = _playerMapper.TryRegisterPlayer(
@@ -93,6 +119,7 @@ namespace ARBattleship.Multiplayer.Battleship
             Debug.Log($"Battleship player disconnected: {clientId}");
         }
 
+        // Runs on the target client and publishes the local player assignment.
         [ClientRpc]
         private void AssignPlayerClientRpc(
             int playerNumber,
@@ -101,6 +128,10 @@ namespace ARBattleship.Multiplayer.Battleship
             NetworkBattleshipEvents.RaiseLocalPlayerAssigned(playerNumber);
         }
 
+        /// <summary>
+        /// Requests ship placement from the local client. Hosts handle the request
+        /// directly; remote clients send it to the server through an RPC.
+        /// </summary>
         public void RequestPlaceShip(
             string shipType,
             int startX,
@@ -138,6 +169,7 @@ namespace ARBattleship.Multiplayer.Battleship
             }
         }
 
+        // RequireOwnership is false so either connected player can submit gameplay input.
         [ServerRpc(RequireOwnership = false)]
         private void PlaceShipServerRpc(
             string shipType,
@@ -157,6 +189,9 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        /// <summary>
+        /// Validates and applies a ship placement on the authoritative server.
+        /// </summary>
         private void HandlePlaceShipServer(
             ulong senderClientId,
             string shipType,
@@ -182,6 +217,7 @@ namespace ARBattleship.Multiplayer.Battleship
                 return;
             }
 
+            // Convert primitive RPC payloads back into domain/application value types.
             Orientation orientation = (Orientation)orientationValue;
 
             var command = new ShipPlacementCommand(
@@ -204,6 +240,7 @@ namespace ARBattleship.Multiplayer.Battleship
 
             int playerNumber = _playerMapper.ToPlayerNumber(playerId);
 
+            // Only the requesting client needs to know that its placement was accepted.
             ShipPlacementAcceptedClientRpc(
                 playerNumber,
                 shipType,
@@ -216,6 +253,9 @@ namespace ARBattleship.Multiplayer.Battleship
             ConsumeAndLogApplicationEvents();
         }
 
+        /// <summary>
+        /// Sends a placement rejection to the client that submitted the invalid request.
+        /// </summary>
         private void SendShipPlacementRejectedToClient(
             ulong targetClientId,
             GameErrorCode errorCode)
@@ -234,6 +274,7 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        // Converts an accepted placement RPC into a local C# event.
         [ClientRpc]
         private void ShipPlacementAcceptedClientRpc(
             int playerNumber,
@@ -252,6 +293,7 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        // Converts a rejected placement RPC into a local C# event.
         [ClientRpc]
         private void ShipPlacementRejectedClientRpc(
             int playerNumber,
@@ -266,6 +308,9 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        /// <summary>
+        /// Requests the start of the battle phase once players are ready.
+        /// </summary>
         public void RequestStartGame()
         {
             if (!IsSpawned)
@@ -292,6 +337,9 @@ namespace ARBattleship.Multiplayer.Battleship
             HandleStartGameServer(rpcParams.Receive.SenderClientId);
         }
 
+        /// <summary>
+        /// Marks a player as ready and starts the game after both players are ready.
+        /// </summary>
         private void HandleStartGameServer(ulong senderClientId)
         {
             if (_game == null)
@@ -300,6 +348,7 @@ namespace ARBattleship.Multiplayer.Battleship
                 return;
             }
 
+            // A HashSet prevents the same client from increasing the ready count twice.
             _readyPlayers.Add(senderClientId);
             Debug.Log($"Player {senderClientId} ready. {_readyPlayers.Count}/2 players ready.");
 
@@ -316,16 +365,21 @@ namespace ARBattleship.Multiplayer.Battleship
                 return;
             }
 
+            // The current domain game starts with Player 1. Broadcast that to both clients.
             BattleStartedClientRpc(startingPlayerNumber: 1);
             ConsumeAndLogApplicationEvents();
         }
 
+        // Tells all clients to enter the battle phase.
         [ClientRpc]
         private void BattleStartedClientRpc(int startingPlayerNumber)
         {
             NetworkBattleshipEvents.RaiseBattleStarted(startingPlayerNumber);
         }
 
+        /// <summary>
+        /// Requests a shot at the specified grid coordinate.
+        /// </summary>
         public void RequestFireShot(int x, int y)
         {
             if (!IsSpawned)
@@ -350,6 +404,7 @@ namespace ARBattleship.Multiplayer.Battleship
             }
         }
 
+        // Remote clients submit shot requests here for server-side validation.
         [ServerRpc(RequireOwnership = false)]
         private void FireShotServerRpc(
             int x,
@@ -361,6 +416,9 @@ namespace ARBattleship.Multiplayer.Battleship
             HandleFireShotServer(senderClientId, x, y);
         }
 
+        /// <summary>
+        /// Validates, applies, and broadcasts a shot from the authoritative server.
+        /// </summary>
         private void HandleFireShotServer(
             ulong senderClientId,
             int x,
@@ -408,18 +466,39 @@ namespace ARBattleship.Multiplayer.Battleship
 
             int shooterPlayerNumber = _playerMapper.ToPlayerNumber(playerId);
 
+            int? hitSegmentIndex = null;
+            string shipOrientation = null;
+            string shipType = null;
+
+            // Consume application events so hit metadata can be forwarded to visual/UI code.
+            foreach (var gameEvent in _gameService.ConsumeEvents())
+            {
+                if (gameEvent is ShotFiredEvent shot)
+                {
+                    hitSegmentIndex = shot.HitSegmentIndex;
+                    shipOrientation = shot.ShipOrientation;
+                    shipType = shot.ShipType;
+                }
+                Debug.Log($"Application event: {gameEvent.GetType().Name}");
+            }
+
+            // Broadcast resolved shots to all clients so both boards/UI can update.
             ShotResolvedClientRpc(
                 shooterPlayerNumber,
                 x,
                 y,
-                (int)result.Value
+                (int)result.Value,
+                hitSegmentIndex ?? -1,
+                shipOrientation ?? "",
+                shipType ?? ""
             );
 
             TryBroadcastGameOver();
-
-            ConsumeAndLogApplicationEvents();
         }
 
+        /// <summary>
+        /// Sends a shot rejection to the client that submitted the invalid request.
+        /// </summary>
         private void SendShotRejectedToClient(
             ulong targetClientId,
             int x,
@@ -442,12 +521,16 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        // Converts a resolved-shot RPC into a local C# event for UI/visual scripts.
         [ClientRpc]
         private void ShotResolvedClientRpc(
             int shooterPlayerNumber,
             int x,
             int y,
-            int shotOutcomeValue)
+            int shotOutcomeValue,
+            int hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             ShotOutcome outcome = (ShotOutcome)shotOutcomeValue;
 
@@ -455,10 +538,14 @@ namespace ARBattleship.Multiplayer.Battleship
                 shooterPlayerNumber,
                 x,
                 y,
-                outcome
+                outcome,
+                hitSegmentIndex == -1 ? null : hitSegmentIndex,
+                string.IsNullOrEmpty(shipOrientation) ? null : shipOrientation,
+                string.IsNullOrEmpty(shipType) ? null : shipType
             );
         }
 
+        // Converts a rejected-shot RPC into a local C# event.
         [ClientRpc]
         private void ShotRejectedClientRpc(
             int shooterPlayerNumber,
@@ -477,6 +564,9 @@ namespace ARBattleship.Multiplayer.Battleship
             );
         }
 
+        /// <summary>
+        /// Broadcasts game-over once the domain game reports a winner.
+        /// </summary>
         private void TryBroadcastGameOver()
         {
             if (_game == null || _gameOverBroadcasted)
@@ -498,12 +588,17 @@ namespace ARBattleship.Multiplayer.Battleship
             Debug.Log($"Game over. Winner: Player {winnerPlayerNumber}");
         }
 
+        // Raises game-over locally on every client.
         [ClientRpc]
         private void GameOverClientRpc(int winnerPlayerNumber)
         {
             NetworkBattleshipEvents.RaiseGameOver(winnerPlayerNumber);
         }
 
+        /// <summary>
+        /// Clears pending application events after operations where the event data
+        /// is only needed for diagnostics.
+        /// </summary>
         private void ConsumeAndLogApplicationEvents()
         {
             if (_gameService == null)
@@ -519,6 +614,9 @@ namespace ARBattleship.Multiplayer.Battleship
             }
         }
 
+        /// <summary>
+        /// Builds ClientRpc parameters that target a single specific client.
+        /// </summary>
         private ClientRpcParams CreateTarget(ulong clientId)
         {
             return new ClientRpcParams

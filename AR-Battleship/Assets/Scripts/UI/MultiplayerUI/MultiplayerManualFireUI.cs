@@ -5,6 +5,9 @@ using UnityEngine.UI;
 
 namespace ARBattleship.Unity.UI
 {
+    /// <summary>
+    /// Provides a fallback manual coordinate input UI for firing shots in multiplayer combat.
+    /// </summary>
     public class MultiplayerManualFireUI : MonoBehaviour
     {
         [SerializeField] private MultiplayerBattleshipSession session;
@@ -19,6 +22,9 @@ namespace ARBattleship.Unity.UI
         private int pendingY = -1;
         private bool battleStarted = false;
 
+        /// <summary>
+        /// Builds the manual fire panel and hides it until the battle begins.
+        /// </summary>
         private void Awake()
         {
             if (session == null)
@@ -26,6 +32,9 @@ namespace ARBattleship.Unity.UI
             BuildUI();
         }
 
+        /// <summary>
+        /// Subscribes to multiplayer events needed by the manual fire form.
+        /// </summary>
         private void OnEnable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
@@ -35,6 +44,9 @@ namespace ARBattleship.Unity.UI
             NetworkBattleshipEvents.GameOver += HidePanel;
         }
 
+        /// <summary>
+        /// Unsubscribes from multiplayer events when the form is disabled.
+        /// </summary>
         private void OnDisable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
@@ -44,11 +56,17 @@ namespace ARBattleship.Unity.UI
             NetworkBattleshipEvents.GameOver -= HidePanel;
         }
 
+        /// <summary>
+        /// Stores the local player number used when sending fire requests.
+        /// </summary>
         private void OnLocalPlayerAssigned(int playerNumber)
         {
             localPlayerNumber = playerNumber;
         }
 
+        /// <summary>
+        /// Displays the manual fire form when multiplayer combat starts.
+        /// </summary>
         private void ShowPanel(int startingPlayerNumber)
         {
             battleStarted = true;
@@ -59,6 +77,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Hides the manual fire form after the game ends.
+        /// </summary>
         private void HidePanel(int winnerPlayerNumber)
         {
             battleStarted = false;
@@ -69,6 +90,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Validates the coordinate input and sends a shot request through the multiplayer session.
+        /// </summary>
         private void OnFireClicked()
         {
             string colText = colInput.text.Trim().ToUpper();
@@ -110,11 +134,17 @@ namespace ARBattleship.Unity.UI
             statusText.text = $"{coord}: Shot requested...";
         }
 
+        /// <summary>
+        /// Shows feedback for a resolved manual shot and updates turn-dependent controls.
+        /// </summary>
         private void OnShotResolved(
             int shooterPlayerNumber,
             int x,
             int y,
-            ShotOutcome outcome)
+            ShotOutcome outcome,
+            int? hitSegmentIndex,
+            string shipOrientation,
+            string shipType)
         {
             if (shooterPlayerNumber != localPlayerNumber)
             {
@@ -140,6 +170,9 @@ namespace ARBattleship.Unity.UI
             pendingY = -1;
         }
 
+        /// <summary>
+        /// Shows a readable error message when the server rejects a manual shot.
+        /// </summary>
         private void OnShotRejected(
             int shooterPlayerNumber,
             int x,
@@ -158,6 +191,9 @@ namespace ARBattleship.Unity.UI
             pendingY = -1;
         }
 
+        /// <summary>
+        /// Generates the manual fire panel, coordinate input fields, and fire button.
+        /// </summary>
         private void BuildUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -278,6 +314,9 @@ namespace ARBattleship.Unity.UI
             panel.SetActive(false);
         }
 
+        /// <summary>
+        /// Creates a generated Unity UI text label with consistent alignment and font settings.
+        /// </summary>
         private void CreateLabel(
             Transform parent,
             string text,
@@ -307,6 +346,9 @@ namespace ARBattleship.Unity.UI
             t.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Creates a generated coordinate input field with placeholder text.
+        /// </summary>
         private InputField CreateInputField(
             Transform parent,
             Vector2 pos,

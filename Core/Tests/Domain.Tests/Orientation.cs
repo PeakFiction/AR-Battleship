@@ -6,7 +6,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class OrientationTests
     {
-        // ── GetOffset ─────────────────────────────────────────────────────────────
 
         [Test]
         public void GetOffset_Horizontal_ReturnsXOffsetOfOne()

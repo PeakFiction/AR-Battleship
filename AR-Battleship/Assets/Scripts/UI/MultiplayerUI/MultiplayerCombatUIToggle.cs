@@ -5,6 +5,9 @@ using UnityEngine.UI;
 
 namespace ARBattleship.Unity.UI
 {
+    /// <summary>
+    /// Creates and manages a simple visibility toggle for the multiplayer combat panel.
+    /// </summary>
     public class MultiplayerCombatUIToggle : MonoBehaviour
     {
         [SerializeField] private MultiplayerCombatUI combatUI;
@@ -13,26 +16,41 @@ namespace ARBattleship.Unity.UI
         private Text buttonLabel;
         private bool isVisible = false;
 
+        /// <summary>
+        /// Subscribes to battle-start events so the combat panel can be hidden automatically.
+        /// </summary>
         private void OnEnable()
         {
             NetworkBattleshipEvents.BattleStarted += HidePanelAfterStart;
         }
 
+        /// <summary>
+        /// Unsubscribes from battle-start events when the toggle is disabled.
+        /// </summary>
         private void OnDisable()
         {
             NetworkBattleshipEvents.BattleStarted -= HidePanelAfterStart;
         }
 
+        /// <summary>
+        /// Finds the combat UI and creates the toggle button if one is not already present.
+        /// </summary>
         private void Start()
         {
             CreateToggleButton();
         }
 
+        /// <summary>
+        /// Begins hiding the combat panel one frame after the multiplayer battle starts.
+        /// </summary>
         private void HidePanelAfterStart(int startingPlayerNumber)
         {
             StartCoroutine(HidePanelNextFrame());
         }
 
+        /// <summary>
+        /// Waits one frame so startup UI changes settle before hiding the combat panel.
+        /// </summary>
         private IEnumerator HidePanelNextFrame()
         {
             yield return null;
@@ -41,6 +59,9 @@ namespace ARBattleship.Unity.UI
             SetPanelVisible(false);
         }
 
+        /// <summary>
+        /// Caches the combat UI GameObject if it exists in the scene.
+        /// </summary>
         private void FindCombatUI()
         {
             if (combatUI == null)
@@ -49,6 +70,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Applies the current visibility state to the cached combat panel.
+        /// </summary>
         private void SetPanelVisible(bool visible)
         {
             isVisible = visible;
@@ -64,6 +88,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Generates a simple on-screen toggle button for showing or hiding the combat UI.
+        /// </summary>
         private void CreateToggleButton()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -104,6 +131,9 @@ namespace ARBattleship.Unity.UI
             buttonLabel.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Flips the combat panel visibility state.
+        /// </summary>
         private void Toggle()
         {
             FindCombatUI();

@@ -6,8 +6,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class CoordinateTests
     {
-        // ── Constructor ───────────────────────────────────────────────────────────
-
         [Test]
         public void Constructor_ValidValues_XIsSet()
         {
@@ -37,8 +35,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(coord.X, Is.EqualTo(-1));
             Assert.That(coord.Y, Is.EqualTo(-5));
         }
-
-        // ── Equals (typed) ────────────────────────────────────────────────────────
 
         [Test]
         public void Equals_SameValues_ReturnsTrue()
@@ -79,8 +75,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(a.Equals(a), Is.True);
         }
 
-        // ── Equals (object overload) ──────────────────────────────────────────────
-
         [Test]
         public void Equals_Object_SameValues_ReturnsTrue()
         {
@@ -111,8 +105,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(a.Equals("not a coordinate"), Is.False);
         }
 
-        // ── == operator ───────────────────────────────────────────────────────────
-
         [Test]
         public void EqualityOperator_SameValues_ReturnsTrue()
         {
@@ -128,8 +120,6 @@ namespace ARBattleship.Core.Tests.Domain
             var b = new Coordinate(1, 2);
             Assert.That(a == b, Is.False);
         }
-
-        // ── != operator ───────────────────────────────────────────────────────────
 
         [Test]
         public void InequalityOperator_DifferentValues_ReturnsTrue()
@@ -147,8 +137,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(a != b, Is.False);
         }
 
-        // ── GetHashCode ───────────────────────────────────────────────────────────
-
         [Test]
         public void GetHashCode_SameValues_ReturnsSameHash()
         {
@@ -164,8 +152,6 @@ namespace ARBattleship.Core.Tests.Domain
             var b = new Coordinate(5, 3);
             Assert.That(a.GetHashCode(), Is.Not.EqualTo(b.GetHashCode()));
         }
-
-        // ── ToString ──────────────────────────────────────────────────────────────
 
         [Test]
         public void ToString_ValidCoordinate_ReturnsFormattedString()

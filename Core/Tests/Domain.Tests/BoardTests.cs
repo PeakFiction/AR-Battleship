@@ -7,7 +7,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class BoardTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
 
         private static Board MakeBoard(int size = 10) => new Board(size);
 
@@ -36,8 +35,6 @@ namespace ARBattleship.Core.Tests.Domain
                 new Coordinate(startX + 4, startY)
             });
 
-        // ── Constructor ───────────────────────────────────────────────────────────
-
         [Test]
         public void Constructor_ValidSize_SizeIsSet()
         {
@@ -61,8 +58,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(board.HasAnyShips(), Is.False);
         }
 
-        // ── HasAnyShips ───────────────────────────────────────────────────────────
-
         [Test]
         public void HasAnyShips_AfterPlacingShip_ReturnsTrue()
         {
@@ -70,8 +65,6 @@ namespace ARBattleship.Core.Tests.Domain
             board.PlaceShip(MakeDestroyer());
             Assert.That(board.HasAnyShips(), Is.True);
         }
-
-        // ── CanPlaceShip ──────────────────────────────────────────────────────────
 
         [Test]
         public void CanPlaceShip_ValidPositions_ReturnsTrue()
@@ -92,7 +85,7 @@ namespace ARBattleship.Core.Tests.Domain
             var positions = new List<Coordinate>
             {
                 new Coordinate(9, 0),
-                new Coordinate(10, 0) // out of bounds
+                new Coordinate(10, 0)
             };
             Assert.That(board.CanPlaceShip(positions), Is.False);
         }
@@ -101,17 +94,15 @@ namespace ARBattleship.Core.Tests.Domain
         public void CanPlaceShip_OverlappingOccupiedCell_ReturnsFalse()
         {
             var board = MakeBoard();
-            board.PlaceShip(MakeDestroyer(0, 0)); // occupies (0,0) and (1,0)
+            board.PlaceShip(MakeDestroyer(0, 0));
 
             var positions = new List<Coordinate>
             {
-                new Coordinate(1, 0), // overlaps
+                new Coordinate(1, 0),
                 new Coordinate(1, 1)
             };
             Assert.That(board.CanPlaceShip(positions), Is.False);
         }
-
-        // ── PlaceShip ─────────────────────────────────────────────────────────────
 
         [Test]
         public void PlaceShip_ValidShip_ReturnsSuccess()
@@ -179,7 +170,6 @@ namespace ARBattleship.Core.Tests.Domain
             var board = MakeBoard();
             board.PlaceShip(MakeDestroyer(0, 0));
 
-            // Try placing a second destroyer
             var secondDestroyer = MakeDestroyer(0, 2);
             var result = board.PlaceShip(secondDestroyer);
 
@@ -219,8 +209,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(board.PlaceShip(MakeCruiser(0, 2)).IsSuccess, Is.True);
             Assert.That(board.PlaceShip(MakeCarrier(0, 4)).IsSuccess, Is.True);
         }
-
-        // ── FireAt ────────────────────────────────────────────────────────────────
 
         [Test]
         public void FireAt_OutOfBounds_ReturnsFailure()
@@ -267,7 +255,7 @@ namespace ARBattleship.Core.Tests.Domain
         public void FireAt_LastCellOfShip_ReturnsSunk()
         {
             var board = MakeBoard();
-            board.PlaceShip(MakeDestroyer(0, 0)); // (0,0) and (1,0)
+            board.PlaceShip(MakeDestroyer(0, 0));
 
             board.FireAt(new Coordinate(0, 0));
             var result = board.FireAt(new Coordinate(1, 0));
@@ -321,12 +309,9 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(result.Value!.Coordinate, Is.EqualTo(coord));
         }
 
-        // ── AllShipsSunk ──────────────────────────────────────────────────────────
-
         [Test]
         public void AllShipsSunk_NoShipsPlaced_ReturnsTrue()
         {
-            // Vacuously true — all zero ships are sunk
             var board = MakeBoard();
             Assert.That(board.AllShipsSunk(), Is.True);
         }
@@ -344,7 +329,7 @@ namespace ARBattleship.Core.Tests.Domain
         {
             var board = MakeBoard();
             board.PlaceShip(MakeDestroyer(0, 0));
-            board.FireAt(new Coordinate(0, 0)); // Hit but not sunk
+            board.FireAt(new Coordinate(0, 0));
 
             Assert.That(board.AllShipsSunk(), Is.False);
         }
@@ -367,14 +352,11 @@ namespace ARBattleship.Core.Tests.Domain
             board.PlaceShip(MakeDestroyer(0, 0));
             board.PlaceShip(MakeCruiser(0, 2));
 
-            // Sink only the destroyer
             board.FireAt(new Coordinate(0, 0));
             board.FireAt(new Coordinate(1, 0));
 
             Assert.That(board.AllShipsSunk(), Is.False);
         }
-
-        // ── GetCell ───────────────────────────────────────────────────────────────
 
         [Test]
         public void GetCell_ValidCoordinate_ReturnsCell()

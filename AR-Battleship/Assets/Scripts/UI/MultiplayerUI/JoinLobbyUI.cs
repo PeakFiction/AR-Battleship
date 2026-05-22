@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controls the client join-lobby screen, validates the relay code input, joins the relay session, and waits for the host to start the match.
+/// </summary>
 public class JoinLobbyUI : MonoBehaviour
 {
 	[SerializeField] private TMP_InputField joinCodeInput;
@@ -33,6 +36,9 @@ public class JoinLobbyUI : MonoBehaviour
 	private bool isWaitingForHost;
 	private bool isStartingGame;
 
+	/// <summary>
+	/// Initialises the join screen and registers for relay status and scene-loading callbacks.
+	/// </summary>
 	private void Start()
 	{
 		HideBattleStartingPopup();
@@ -54,6 +60,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Subscribes to relay status events when the join screen becomes active.
+	/// </summary>
 	private void OnEnable()
 	{
 		if (RelayManager.Instance != null)
@@ -65,6 +74,9 @@ public class JoinLobbyUI : MonoBehaviour
 		RegisterNetworkSceneEvents();
 	}
 
+	/// <summary>
+	/// Unsubscribes from relay status events when the join screen is hidden or destroyed.
+	/// </summary>
 	private void OnDisable()
 	{
 		if (RelayManager.Instance != null)
@@ -76,6 +88,9 @@ public class JoinLobbyUI : MonoBehaviour
 		UnregisterNetworkSceneEvents();
 	}
 
+	/// <summary>
+	/// Validates the entered join code, attempts to join the relay session, and switches to the waiting state on success.
+	/// </summary>
 	public async void OnJoinPressed()
 	{
 		if (isWaitingForHost || isStartingGame)
@@ -126,6 +141,9 @@ public class JoinLobbyUI : MonoBehaviour
 		RegisterNetworkSceneEvents();
 	}
 
+	/// <summary>
+	/// Cancels the join flow and returns to the multiplayer menu or fallback lobby scene.
+	/// </summary>
 	public void OnBackPressed()
 	{
 		Debug.Log("Join lobby back button pressed");
@@ -147,6 +165,9 @@ public class JoinLobbyUI : MonoBehaviour
 		SceneManager.LoadScene("2LobbyScreen");
 	}
 
+	/// <summary>
+	/// Registers callbacks used to detect when the networked gameplay scene has loaded.
+	/// </summary>
 	private void RegisterNetworkSceneEvents()
 	{
 		if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
@@ -156,6 +177,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Removes network and Unity scene callbacks to prevent duplicate scene-load handling.
+	/// </summary>
 	private void UnregisterNetworkSceneEvents()
 	{
 		if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
@@ -164,6 +188,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Responds to Netcode scene-load notifications and hides the waiting popup after gameplay loads.
+	/// </summary>
 	private void HandleNetworkSceneEvent(SceneEvent sceneEvent)
 	{
 		if (sceneEvent.SceneEventType != SceneEventType.Load)
@@ -184,6 +211,9 @@ public class JoinLobbyUI : MonoBehaviour
 		JoinLobbyClientSceneGuard.DestroyExisting();
 	}
 
+	/// <summary>
+	/// Handles direct Unity scene loads as a fallback for the join lobby flow.
+	/// </summary>
 	private void HandleUnitySceneLoaded(Scene scene, LoadSceneMode mode)
 	{
 		if (!keepClientOnJoinLobbyScreen)
@@ -204,11 +234,17 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Forwards relay status messages into the join-screen status label.
+	/// </summary>
 	private void HandleStatusChanged(string message)
 	{
 		SetStatusText(message);
 	}
 
+	/// <summary>
+	/// Safely updates the join-screen status text if the label is assigned.
+	/// </summary>
 	private void SetStatusText(string message)
 	{
 		if (statusText != null)
@@ -217,6 +253,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Enables or disables the join button during async relay operations.
+	/// </summary>
 	private void SetJoinButtonInteractable(bool interactable)
 	{
 		if (joinButton != null)
@@ -230,6 +269,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Controls both join and back buttons while joining or loading scenes.
+	/// </summary>
 	private void SetLobbyButtonsInteractable(bool interactable)
 	{
 		if (joinButton != null)
@@ -243,6 +285,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Shows or hides the enter-code panel after the player joins successfully.
+	/// </summary>
 	private void SetEnterCodeBoxVisible(bool visible)
 	{
 		if (enterCodeBoxRoot != null)
@@ -258,6 +303,9 @@ public class JoinLobbyUI : MonoBehaviour
 			joinButton.gameObject.SetActive(visible);
 	}
 
+	/// <summary>
+	/// Shows the waiting popup while the client waits for host-controlled scene loading.
+	/// </summary>
 	private void ShowBattleStartingPopup()
 	{
 		if (battleStartingPopupText != null)
@@ -271,6 +319,9 @@ public class JoinLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Hides the waiting popup after gameplay starts or the flow is cancelled.
+	/// </summary>
 	private void HideBattleStartingPopup()
 	{
 		if (battleStartingPopup != null)
@@ -280,6 +331,9 @@ public class JoinLobbyUI : MonoBehaviour
 	}
 }
 
+/// <summary>
+/// Keeps joined clients on the waiting screen until the host loads the shared gameplay scene.
+/// </summary>
 public class JoinLobbyClientSceneGuard : MonoBehaviour
 {
 	private static JoinLobbyClientSceneGuard instance;
@@ -289,6 +343,9 @@ public class JoinLobbyClientSceneGuard : MonoBehaviour
 	private string gameplaySceneName;
 	private bool redirecting;
 
+	/// <summary>
+	/// Creates a single persistent scene guard if one does not already exist.
+	/// </summary>
 	public static void Ensure(string joinLobbySceneName, string createLobbySceneName, string gameplaySceneName)
 	{
 		if (instance != null)
@@ -303,6 +360,9 @@ public class JoinLobbyClientSceneGuard : MonoBehaviour
 		DontDestroyOnLoad(guardObject);
 	}
 
+	/// <summary>
+	/// Removes the persistent scene guard when it is no longer needed.
+	/// </summary>
 	public static void DestroyExisting()
 	{
 		if (instance == null)
@@ -319,6 +379,9 @@ public class JoinLobbyClientSceneGuard : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Stores scene names used by the guard to decide which scene transitions are allowed.
+	/// </summary>
 	private void Configure(string joinLobbySceneName, string createLobbySceneName, string gameplaySceneName)
 	{
 		this.joinLobbySceneName = joinLobbySceneName;
@@ -326,16 +389,25 @@ public class JoinLobbyClientSceneGuard : MonoBehaviour
 		this.gameplaySceneName = gameplaySceneName;
 	}
 
+	/// <summary>
+	/// Subscribes to relay status events when the join screen becomes active.
+	/// </summary>
 	private void OnEnable()
 	{
 		SceneManager.sceneLoaded += HandleSceneLoaded;
 	}
 
+	/// <summary>
+	/// Unsubscribes from relay status events when the join screen is hidden or destroyed.
+	/// </summary>
 	private void OnDisable()
 	{
 		SceneManager.sceneLoaded -= HandleSceneLoaded;
 	}
 
+	/// <summary>
+	/// Redirects joined clients away from lobby screens until the gameplay scene is loaded by the host.
+	/// </summary>
 	private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
 	{
 		if (RelayManager.Instance == null || !RelayManager.Instance.IsClient || RelayManager.Instance.IsHost)

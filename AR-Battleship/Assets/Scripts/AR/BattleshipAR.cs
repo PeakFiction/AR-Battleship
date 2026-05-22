@@ -2,50 +2,74 @@ using UnityEngine;
 using Vuforia;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Unity;
+using System.Collections.Generic;
 
+/// <summary>
+/// Controls the AR (Augmented Reality) game board using Vuforia image tracking.
+/// Tracks three image targets: board (enemy grid), aim (targeting), and fire (confirm shot).
+/// Handles visual effects (missiles, explosions) and user interaction in AR mode.
+/// </summary>
 public class BattleshipAR : MonoBehaviour
 {
     [Header("Vuforia Targets")]
-    public ObserverBehaviour boardObserver;
-    public ObserverBehaviour aimObserver;
-    public ObserverBehaviour confirmObserver;
+    public ObserverBehaviour boardObserver;  // Tracks the enemy grid image target
+    public ObserverBehaviour aimObserver;    // Tracks the aim/targeting image target
+    public ObserverBehaviour confirmObserver; // Tracks the fire/confirm image target
 
     [Header("Board Settings")]
     public int gridRows = 10;
     public int gridCols = 10;
-    public float cellSize = 0.016f;
+    public float cellSize = 0.016f; // Size of each cell in Unity units
 
     [Header("Grid Offset from Tracking Image")]
     public float offsetX = 0f;
-    public float offsetZ = 0.15f;
+    public float offsetZ = 0.15f; // Offsets adjust grid position relative to tracked image
 
     [Header("Visuals")]
     public Color gridColor = Color.cyan;
-    public Color hoverColor = Color.yellow;
+    public Color hoverColor = Color.yellow;  // Color when aiming at a cell
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
     public Color labelColor = Color.white;
 
-    private bool boardTracked = false;
-    private bool aimTracked = false;
-    private bool confirmTracked = false;
+    // Tracking states for the three image targets
+    private bool boardTracked = false;  // Is the enemy grid visible?
+    private bool aimTracked = false;    // Is the aim marker visible?
+    private bool confirmTracked = false; // Is the fire marker visible?
     private bool confirmJustDetected = false;
     private bool smoothingInitialized = false;
 
-    private GameObject[,] cellObjects;
-    private bool[,] cellFired;
-    private GameObject hoverIndicator;
-    private GameObject gridBorder;
-    private GameObject[] columnLabels;
-    private GameObject[] rowLabels;
+    // Grid state - tracks which cells have been fired and their outcomes
+    private GameObject[,] cellObjects;        // Visual cell game objects
+    private bool[,] cellFired;                // Has this cell been shot?
+    private ShotOutcome?[,] cellOutcomes;     // What was the outcome? (Hit/Miss/Sunk)
+    private List<GameObject> spawnedPrefabs = new List<GameObject>();  // All spawned effects (missiles, fires) for cleanup
+    
+    // UI elements
+    private GameObject hoverIndicator; // Visual indicator when aiming
+    private GameObject gridBorder;     // Border around the grid
+    private GameObject[] columnLabels; // A, B, C... labels
+    private GameObject[] rowLabels;    // 1, 2, 3... labels
+    
+    // Cell selection state
     private Vector2Int currentHoverCell = new Vector2Int(-1, -1);
-    private Vector2Int lockedCell = new Vector2Int(-1, -1);
+    private Vector2Int lockedCell = new Vector2Int(-1, -1);  // Cell locked in when aim tag is placed
+    private Vector2Int previousHoverCell = new Vector2Int(-1, -1);
 
     private float boardWidth;
     private float boardHeight;
 
+    // Smooth tracking for aim marker movement
     private Vector3 smoothedLocalPos;
     private float smoothSpeed = 5f;
+    
+    // Prefabs for visual effects
+    public GameObject customCellPrefab;  // Cell tile prefab
+    public GameObject rocketPrefab;      // Miss animation prefab
+    public GameObject hitRocketPrefab;   // Hit animation prefab
+    public Transform targetTile;
+    private Color originalTileColor;
+
 
     bool IsMirrored
     {
@@ -73,6 +97,7 @@ public class BattleshipAR : MonoBehaviour
     void Start()
     {
         cellFired = new bool[gridCols, gridRows];
+        cellOutcomes = new ShotOutcome?[gridCols, gridRows];
         cellObjects = new GameObject[gridCols, gridRows];
 
         boardWidth = gridCols * cellSize;
@@ -87,30 +112,197 @@ public class BattleshipAR : MonoBehaviour
         CreateHoverIndicator();
     }
 
+    // Subscribe to game events - will receive shot notifications even when board isn't visible
     void OnEnable()
     {
         GameManager.OnPlayerShotFired += HandlePlayerShot;
+        GameManager.OnEnemyShotFired += HandleEnemyShot;
         GameManager.OnGameOver += HandleGameOver;
+        GameManager.OnGameStarted += ResetBoardState;
     }
 
+    // Unsubscribe from events to prevent memory leaks
     void OnDisable()
     {
         GameManager.OnPlayerShotFired -= HandlePlayerShot;
+        GameManager.OnEnemyShotFired -= HandleEnemyShot;
         GameManager.OnGameOver -= HandleGameOver;
+        GameManager.OnGameStarted -= ResetBoardState;
     }
 
-    void HandlePlayerShot(int x, int y, ShotOutcome result)
+    /// <summary>
+    /// Resets the board for a new game.
+    /// Destroys all spawned visual effects (missiles, fires, explosions).
+    /// Clears tracking data for fired cells.
+    /// Cell tiles themselves are NOT destroyed - they persist and are reused.
+    /// </summary>
+    void ResetBoardState()
     {
-        cellFired[x, y] = true;
+        Debug.Log("[AR] Resetting board state for new game");
+        
+        // Clean up all spawned effects from previous game
+        foreach (GameObject prefab in spawnedPrefabs)
+        {
+            if (prefab != null)
+            {
+                Destroy(prefab);
+            }
+        }
+        spawnedPrefabs.Clear();
+        
+        // Clear game state tracking
+        for (int x = 0; x < gridCols; x++)
+        {
+            for (int y = 0; y < gridRows; y++)
+            {
+                cellFired[x, y] = false;
+                cellOutcomes[x, y] = null;
+                
+                // Cell colors are NOT reset here - they maintain their prefab's default appearance
+                // Visual effects (fire, splash) are separate spawned objects, not cell modifications
+            }
+        }
+    }
+
+    /// <summary>
+    /// Spawns a missile that flies down and creates a splash effect when missing.
+    /// Adds to spawnedPrefabs list for cleanup when game resets.
+    /// </summary>
+    void SpawnMissRocket(int col, int row) {
+        if (rocketPrefab == null)
+        {
+            Debug.LogWarning("[AR] rocketPrefab is null - skipping spawn (likely in 2D mode)");
+            return;
+        }
+
+        GameObject chosenTile = cellObjects[col, row];
+
+        GameObject rocket = Instantiate(rocketPrefab);
+        spawnedPrefabs.Add(rocket);  // Track for cleanup
+        rocket.transform.rotation = Quaternion.Euler(180f, 0f, 0f);
+        rocket.transform.localScale = new Vector3(0.005f, 0.005f, 0.005f);
+
+        MissileDropMissAlt missileScript =
+            rocket.GetComponentInChildren<MissileDropMissAlt>();
+
+        missileScript.missTargetTileAlt = chosenTile.transform;
+    }
+
+    /// <summary>
+    /// Spawns a missile that flies down and creates a fire/explosion effect when hitting a ship.
+    /// The fire effect shows which ship was hit and which segment.
+    /// </summary>
+    void SpawnHitRocket(int col, int row, int? hitSegmentIndex, string? shipOrientation, string shipType) {
+        if (hitRocketPrefab == null)
+        {
+            Debug.LogWarning("[AR] hitRocketPrefab is null - skipping spawn (likely in 2D mode)");
+            return;
+        }
+
+        GameObject chosenTile = cellObjects[col, row];
+
+        GameObject rocket = Instantiate(hitRocketPrefab);
+        spawnedPrefabs.Add(rocket);  // Track for cleanup
+
+        rocket.transform.localScale =
+            new Vector3(0.005f, 0.005f, 0.005f);
+
+        rocket.transform.rotation =
+            Quaternion.Euler(180f, 0f, 0f);
+
+        MoveToTarget rocketScript =
+            rocket.GetComponentInChildren<MoveToTarget>();
+
+        rocketScript.chosenTile =
+            chosenTile.transform;
+
+        rocketScript.hitSegmentIndex =
+            hitSegmentIndex ?? 0;
+
+        rocketScript.shipOrientation =
+            shipOrientation ?? "Horizontal";
+
+        rocketScript.shipType =
+            shipType;
+    }
+
+    /// <summary>
+    /// Handles when the player fires a shot at the enemy board.
+    /// ALWAYS tracks the shot in cellFired and cellOutcomes, even if board isn't visible.
+    /// Only spawns visual effects (missile, fire) if the AR board is currently being tracked.
+    /// This allows switching between 2D and AR modes mid-game without losing state.
+    /// </summary>
+    void HandlePlayerShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
+    {
+        // Track state regardless of visibility - this persists when switching between 2D/AR modes
+        if (x >= 0 && x < gridCols && y >= 0 && y < gridRows)
+        {
+            cellFired[x, y] = true;
+            cellOutcomes[x, y] = result;
+        }
+
+        // Only spawn visual effects if AR board is currently visible
+        if (!boardTracked)
+        {
+            Debug.Log($"[AR] Shot tracked but board not visible - will sync when board detected");
+            return;
+        }
+
         hoverIndicator.SetActive(false);
         lockedCell = new Vector2Int(-1, -1);
 
+        // Spawn appropriate visual effect based on outcome
         if (result == ShotOutcome.Miss)
-            SetCellColor(x, y, missColor, 0.7f);
+        {
+            SpawnMissRocket(x, y);
+        }
         else if (result == ShotOutcome.Hit || result == ShotOutcome.Sunk)
-            SetCellColor(x, y, hitColor, 0.7f);
-
+        {
+            UnityEngine.Debug.Log($"HandlePlayerShot shipType in AR: {shipType}");
+            SpawnHitRocket(x, y, hitSegmentIndex, shipOrientation, shipType);
+        }
         Debug.Log($"[AR] Shot at ({x},{y}) -> {result}");
+        Debug.Log($"[AR] Shot at a {shipOrientation} {shipType} at {hitSegmentIndex}");
+    }
+
+    /// <summary>
+    /// Handles when the enemy fires a shot at the player's board.
+    /// Enemy shots are displayed on the minimap (handled by CombatUI), NOT on the AR board.
+    /// AR board only shows player's attacks against enemy.
+    /// </summary>
+    void HandleEnemyShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
+    {
+        Debug.Log($"[AR] Enemy shot at ({x},{y}) -> {result}");
+        
+        // Enemy shots go to the minimap - CombatUI handles this
+        // AR board only shows player's shots, not enemy's shots
+        // Do nothing here
+    }
+
+    /// <summary>
+    /// Syncs the AR board's visual state when it becomes visible.
+    /// NOTE: Does NOT re-spawn effects (missiles, fires) - those are one-time animations.
+    /// Only ensures cells that were fired are visible.
+    /// If you fired shots while in 2D mode, the effects won't replay in AR mode.
+    /// </summary>
+    void SyncBoardVisuals()
+    {
+        Debug.Log("[AR] Syncing board visuals with game state");
+        // Visual effects (missiles, fires) were spawned when shots occurred
+        // We don't re-spawn them - they're one-time animations
+        // The cellFired/cellOutcomes data is for game logic, not visual reconstruction
+        
+        // Just ensure cells that were fired are visible
+        for (int x = 0; x < gridCols; x++)
+        {
+            for (int y = 0; y < gridRows; y++)
+            {
+                if (cellFired[x, y] && cellObjects[x, y] != null)
+                {
+                    cellObjects[x, y].SetActive(true);
+                }
+            }
+        }
     }
 
     void HandleGameOver(int winnerIndex)
@@ -124,16 +316,16 @@ public class BattleshipAR : MonoBehaviour
         {
             for (int col = 0; col < gridCols; col++)
             {
-                GameObject cell = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                GameObject cell = Instantiate(customCellPrefab);
                 cell.name = $"Cell_{col}_{row}";
                 cell.transform.SetParent(boardObserver.transform);
 
                 cell.transform.localPosition = new Vector3(CellX(col), 0.001f, CellZ(row));
-                cell.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                cell.transform.localScale = new Vector3(cellSize * 0.9f, cellSize * 0.9f, 1f);
+                cell.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+                cell.transform.localScale = new Vector3(0.75f, 0.12f, 0.75f);
 
                 Renderer rend = cell.GetComponent<Renderer>();
-                rend.material = CreateCellMaterial(gridColor, 0.3f);
+                originalTileColor = rend.material.color;
                 Destroy(cell.GetComponent<Collider>());
                 cell.SetActive(false);
                 cellObjects[col, row] = cell;
@@ -248,6 +440,7 @@ public class BattleshipAR : MonoBehaviour
 
     void OnBoardStatusChanged(ObserverBehaviour b, TargetStatus status)
     {
+        bool wasTracked = boardTracked;
         boardTracked = status.Status == Status.TRACKED
                     || status.Status == Status.EXTENDED_TRACKED;
 
@@ -261,6 +454,12 @@ public class BattleshipAR : MonoBehaviour
             columnLabels[col].SetActive(boardTracked);
         for (int row = 0; row < gridRows; row++)
             rowLabels[row].SetActive(boardTracked);
+
+        // Sync visual state when board becomes visible
+        if (boardTracked && !wasTracked)
+        {
+            SyncBoardVisuals();
+        }
 
         if (!boardTracked)
         {
@@ -331,6 +530,9 @@ public class BattleshipAR : MonoBehaviour
 
     void Update()
     {
+        if (hoverIndicator == null)
+            return;
+
         if (!boardTracked)
         {
             hoverIndicator.SetActive(false);
@@ -340,19 +542,26 @@ public class BattleshipAR : MonoBehaviour
         if (aimTracked)
         {
             Vector2Int cell = GetCellFromObserver(aimObserver);
-
             if (cell.x >= 0 && !cellFired[cell.x, cell.y])
             {
+                // Restore old tile
+                if (previousHoverCell.x >= 0 &&
+                    previousHoverCell != cell)
+                {
+                    SetCellColor(
+                        previousHoverCell.x,
+                        previousHoverCell.y,
+                        originalTileColor,
+                        originalTileColor.a
+                    );
+                }
+
                 currentHoverCell = cell;
                 lockedCell = cell;
 
-                hoverIndicator.transform.localPosition = new Vector3(CellX(cell.x), 0.003f, CellZ(cell.y));
-                hoverIndicator.SetActive(true);
+                SetCellColor(cell.x, cell.y, new Color(1f, 0.5f, 0f), 1f);
 
-                Renderer hRend = hoverIndicator.GetComponent<Renderer>();
-                Color c = hoverColor;
-                c.a = 0.5f;
-                hRend.material.color = c;
+                previousHoverCell = cell;
             }
             else if (cell.x >= 0 && cellFired[cell.x, cell.y])
             {
@@ -375,7 +584,18 @@ public class BattleshipAR : MonoBehaviour
         }
         else
         {
-            hoverIndicator.SetActive(false);
+            if (previousHoverCell.x >= 0)
+            {
+                SetCellColor(
+                    previousHoverCell.x,
+                    previousHoverCell.y,
+                    gridColor,
+                    1f
+                );
+            }
+
+            previousHoverCell = new Vector2Int(-1, -1);
+
             currentHoverCell = new Vector2Int(-1, -1);
         }
 

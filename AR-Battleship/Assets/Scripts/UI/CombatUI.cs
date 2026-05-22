@@ -1,3 +1,48 @@
+// =============================================================================
+// CombatUI.cs
+// Namespace: ARBattleship.Unity.UI
+// =============================================================================
+// PURPOSE:
+//   Main singleplayer combat HUD for the AR gameplay scene.  Manages all
+//   visual feedback during a match:
+//     • 2D enemy grid overlay (toggleable via hamburger button)
+//     • Minimap of the player's own board (auto-sized to a slot RectTransform)
+//     • Enemy fleet indicator (5 coloured pips → grey as ships sink)
+//     • Battle log popup with scrollable history
+//     • Turn indicator (sprite or text, auto-hidden after N seconds)
+//     • Pause overlay (freeze time, continue / abort mission)
+//     • Game-over overlay (victory / defeat sprites, rematch / return)
+//     • Top-right persistent turn status image
+//     • Combat music integration (gameplay → danger → victory / loss)
+//
+// DESIGN PHILOSOPHY:
+//   All UI panels that existed in the Figma design are assigned via Inspector
+//   fields (Figma art objects).  Only dynamic elements (grid buttons, minimap
+//   cells, fleet pips, log text, turn indicator) are generated at runtime
+//   via the Build* and Bind* methods.  This keeps art control in the hands
+//   of designers while keeping behaviour in code.
+//
+// EVENT WIRING:
+//   Subscribes to GameManager static events in OnEnable / OnDisable:
+//     OnGameStarted, OnPlayerShotFired, OnEnemyShotFired,
+//     OnGameOver, OnBattleLogEntry, OnShipSunk
+//
+// COLOUR CONSTANTS (static readonly):
+//   EmptyCellColor  – dark transparent grey  (#0000 26%)
+//   HitColor        – red                    (#D91515)
+//   MissColor       – blue                   (#3359D9)
+//   ShipColor       – mid grey               (#8C8C8C)
+//   EnemyFleetLiveColor – red               (#D91515)
+//   EnemyFleetSunkColor – dark grey         (#383838)
+//
+// DEPENDENCIES:
+//   • TextMeshPro (com.unity.textmeshpro)
+//   • UnityEngine.UI (built-in)
+//   • UnityEngine.SceneManagement (built-in)
+//   • GameManager (project-level singleton)
+//   • MusicManager (project-level singleton, optional)
+// =============================================================================
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -308,7 +353,7 @@ namespace ARBattleship.Unity.UI
             SetLocalTurn(true, true);
         }
 
-        private void HandlePlayerShot(int x, int y, ShotOutcome outcome)
+        private void HandlePlayerShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
             if (IsInsideGrid(x, y) && enemyGridButtons[x][y] != null)
             {
@@ -335,14 +380,17 @@ namespace ARBattleship.Unity.UI
                 SetLocalTurn(false, true);
         }
 
-        private void HandleEnemyShot(int x, int y, ShotOutcome outcome)
+        private void HandleEnemyShot(int x, int y, ShotOutcome outcome, int? hitSegmentIndex, string? shipOrientation, string? shipType)
         {
+            Debug.Log($"[CombatUI] HandleEnemyShot called: ({x},{y}) -> {outcome}");
+            
             if (IsInsideGrid(x, y) && minimapCells[x][y] != null)
                 minimapCells[x][y].color = outcome == ShotOutcome.Miss ? MissColor : HitColor;
 
             if (outcome != ShotOutcome.Miss)
                 PlayDangerMusicIfPlayerShipHit();
 
+            Debug.Log($"[CombatUI] Current phase: {GameManager.Instance?.CurrentPhase}, Setting turn back to player");
             if (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.InProgress)
                 SetLocalTurn(true, true);
         }

@@ -8,8 +8,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class ShipTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
-
         private static List<Coordinate> MakePositions(int count, int startX = 0, int startY = 0)
         {
             var positions = new List<Coordinate>();
@@ -17,8 +15,6 @@ namespace ARBattleship.Core.Tests.Domain
                 positions.Add(new Coordinate(startX + i, startY));
             return positions;
         }
-
-        // ── Factory methods ───────────────────────────────────────────────────────
 
         [Test]
         public void CreateCarrier_ValidPositions_ShipTypeIsCarrier()
@@ -110,17 +106,15 @@ namespace ARBattleship.Core.Tests.Domain
         public void CreateCarrier_WrongPositionCount_ThrowsArgumentException()
         {
             Assert.Throws<System.ArgumentException>(() =>
-                Ship.CreateCarrier(ShipId.New(), MakePositions(4))); // 4 instead of 5
+                Ship.CreateCarrier(ShipId.New(), MakePositions(4)));
         }
 
         [Test]
         public void CreateDestroyer_WrongPositionCount_ThrowsArgumentException()
         {
             Assert.Throws<System.ArgumentException>(() =>
-                Ship.CreateDestroyer(ShipId.New(), MakePositions(3))); // 3 instead of 2
+                Ship.CreateDestroyer(ShipId.New(), MakePositions(3)));
         }
-
-        // ── IsSunk ────────────────────────────────────────────────────────────────
 
         [Test]
         public void IsSunk_NewShip_ReturnsFalse()
@@ -158,8 +152,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(ship.IsSunk, Is.True);
         }
 
-        // ── RegisterHit ───────────────────────────────────────────────────────────
-
         [Test]
         public void RegisterHit_ValidCoordinate_ReturnsTrue()
         {
@@ -190,7 +182,7 @@ namespace ARBattleship.Core.Tests.Domain
             var positions = MakePositions(2);
             var ship = Ship.CreateDestroyer(ShipId.New(), positions);
             ship.RegisterHit(positions[0]);
-            ship.RegisterHit(positions[0]); // duplicate
+            ship.RegisterHit(positions[0]);
             Assert.That(ship.IsSunk, Is.False);
         }
 
