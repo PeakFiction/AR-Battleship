@@ -1,3 +1,10 @@
+// =============================================================================
+// CellTests.cs  |  ARBattleship.Core.Tests.Domain
+// =============================================================================
+// NUnit unit tests for the Domain layer: Cell.
+// Tests verify domain invariants, factory constraints, and edge cases.
+// All tests are pure C# — no Unity dependency required.
+// =============================================================================
 using NUnit.Framework;
 using ARBattleship.Core.Domain;
 

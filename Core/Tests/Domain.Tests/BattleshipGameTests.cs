@@ -7,12 +7,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class BattleshipGameTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Places a single destroyer (size 2) for the given player at (0,0)-(0,1).
-        /// Used to satisfy HasAnyShips() without placing a full fleet.
-        /// </summary>
         private static void PlaceOneShip(BattleshipGame game, PlayerId player, int startX = 0, int startY = 0)
         {
             var positions = new List<Coordinate>
@@ -24,9 +18,6 @@ namespace ARBattleship.Core.Tests.Domain
             game.PlaceShip(player, ship);
         }
 
-        /// <summary>
-        /// Places a full standard fleet for the given player, arranged in rows.
-        /// </summary>
         private static void PlaceFullFleet(BattleshipGame game, PlayerId player, int rowOffset = 0)
         {
             var fleet = new (System.Func<ShipId, IEnumerable<Coordinate>, Ship> Factory, int Size)[]
@@ -48,14 +39,8 @@ namespace ARBattleship.Core.Tests.Domain
             }
         }
 
-        /// <summary>
-        /// Sinks all ships on PlayerTwo's board by firing at every cell PlayerTwo's
-        /// fleet occupies, alternating turns correctly.
-        /// </summary>
         private static void SinkAllPlayerTwoShips(BattleshipGame game)
         {
-            // Fire at every cell on PlayerTwo's board — hits will sink ships,
-            // misses are ignored. We alternate turns after each successful shot.
             for (int x = 0; x < game.PlayerTwoBoard.Size; x++)
             {
                 for (int y = 0; y < game.PlayerTwoBoard.Size; y++)
@@ -65,14 +50,11 @@ namespace ARBattleship.Core.Tests.Domain
 
                     game.FireShot(PlayerId.PlayerOne, new Coordinate(x, y));
 
-                    // Let PlayerTwo fire a harmless shot if the game isn't over
                     if (game.Phase != GamePhase.Finished && game.CurrentTurn == PlayerId.PlayerTwo)
                         game.FireShot(PlayerId.PlayerTwo, new Coordinate(x, y));
                 }
             }
         }
-
-        // ── Constructor ───────────────────────────────────────────────────────────
 
         [Test]
         public void Constructor_NewGame_PhaseIsSetup()
@@ -117,8 +99,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(game.PlayerOneBoard.Size, Is.EqualTo(8));
             Assert.That(game.PlayerTwoBoard.Size, Is.EqualTo(8));
         }
-
-        // ── StartGame ─────────────────────────────────────────────────────────────
 
         [Test]
         public void StartGame_BothPlayersHaveShips_ReturnsSuccess()
@@ -203,8 +183,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(result.IsSuccess, Is.False);
         }
 
-        // ── PlaceShip ─────────────────────────────────────────────────────────────
-
         [Test]
         public void PlaceShip_DuringSetup_ReturnsSuccess()
         {
@@ -258,9 +236,8 @@ namespace ARBattleship.Core.Tests.Domain
         public void PlaceShip_OverlappingPosition_ReturnsFailure()
         {
             var game = new BattleshipGame();
-            PlaceShipWithResult(game, PlayerId.PlayerOne, 0, 0); // Destroyer at (0,0)-(1,0)
+            PlaceShipWithResult(game, PlayerId.PlayerOne, 0, 0);
 
-            // Try placing another ship overlapping at (1,0)
             var positions = new List<Coordinate>
             {
                 new Coordinate(1, 0),
@@ -272,8 +249,6 @@ namespace ARBattleship.Core.Tests.Domain
 
             Assert.That(result.IsSuccess, Is.False);
         }
-
-        // ── FireShot ──────────────────────────────────────────────────────────────
 
         [Test]
         public void FireShot_DuringSetup_ReturnsFailure()
@@ -293,7 +268,6 @@ namespace ARBattleship.Core.Tests.Domain
             PlaceOneShip(game, PlayerId.PlayerTwo);
             game.StartGame();
 
-            // PlayerTwo fires when it's PlayerOne's turn
             var result = game.FireShot(PlayerId.PlayerTwo, new Coordinate(0, 0));
 
             Assert.That(result.IsSuccess, Is.False);
@@ -307,7 +281,6 @@ namespace ARBattleship.Core.Tests.Domain
             PlaceOneShip(game, PlayerId.PlayerTwo, 0, 0);
             game.StartGame();
 
-            // Fire at (9,9) — no ship there
             var result = game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9));
 
             Assert.That(result.IsSuccess, Is.True);
@@ -319,7 +292,7 @@ namespace ARBattleship.Core.Tests.Domain
         {
             var game = new BattleshipGame();
             PlaceOneShip(game, PlayerId.PlayerOne, 0, 0);
-            PlaceOneShip(game, PlayerId.PlayerTwo, 0, 0); // Destroyer at (0,0)-(1,0)
+            PlaceOneShip(game, PlayerId.PlayerTwo, 0, 0);
             game.StartGame();
 
             var result = game.FireShot(PlayerId.PlayerOne, new Coordinate(0, 0));
@@ -349,10 +322,9 @@ namespace ARBattleship.Core.Tests.Domain
             PlaceOneShip(game, PlayerId.PlayerTwo);
             game.StartGame();
 
-            game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9)); // Miss, turn switches
-            game.FireShot(PlayerId.PlayerTwo, new Coordinate(9, 9)); // Miss, turn switches back
+            game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9));
+            game.FireShot(PlayerId.PlayerTwo, new Coordinate(9, 9));
 
-            // PlayerOne fires same coord again
             var result = game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9));
 
             Assert.That(result.IsSuccess, Is.False);
@@ -384,8 +356,6 @@ namespace ARBattleship.Core.Tests.Domain
 
             Assert.That(result.IsSuccess, Is.False);
         }
-
-        // ── Win condition ─────────────────────────────────────────────────────────
 
         [Test]
         public void FireShot_LastShipSunk_PhaseBecomesFinished()
@@ -426,8 +396,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(game.IsGameOver, Is.True);
         }
 
-        // ── IsGameOver (backwards compat) ─────────────────────────────────────────
-
         [Test]
         public void IsGameOver_DuringSetup_IsFalse()
         {
@@ -445,8 +413,6 @@ namespace ARBattleship.Core.Tests.Domain
 
             Assert.That(game.IsGameOver, Is.False);
         }
-
-        // ── Private helpers ───────────────────────────────────────────────────────
 
         private static Result<bool> PlaceShipWithResult(BattleshipGame game, PlayerId player, int startX, int startY)
         {

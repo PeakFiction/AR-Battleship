@@ -8,25 +8,35 @@ using ARBattleship.Core.Domain;
 
 namespace ARBattleship.Core.Application.Services
 {
+    /// <summary>
+    /// Contract for the application service that mediates between the UI/network
+    /// layer and the Battleship domain model.
+    /// </summary>
     public interface IBattleshipGameService
     {
         /// <summary>
-        /// Generates a perspective-based snapshot of the game state for a specific player.
+        /// Returns a perspective-based snapshot of the current board state.
+        /// Own ships are visible; opponent ships are hidden until shot or sunk.
         /// </summary>
+        /// <param name="viewer">The player requesting the snapshot.</param>
         GameSnapshot GetSnapshot(PlayerId viewer);
 
         /// <summary>
-        /// Attempts to fire a shot at the opponent's board.
+        /// Attempts to fire a shot on the viewer's behalf.
+        /// Validates phase, turn, and coordinate before delegating to the domain.
         /// </summary>
         Result<ShotOutcome, GameErrorCode> TryFireShot(FireShotCommand command);
 
         /// <summary>
-        /// Attempts to place a ship on the player's own board.
+        /// Attempts to place a ship during the Setup phase.
+        /// Calculates all cell positions from the command's start coordinate,
+        /// orientation, and ship type, then delegates to the domain.
         /// </summary>
         Result<bool, GameErrorCode> TryPlaceShip(ShipPlacementCommand command);
 
         /// <summary>
-        /// Retrieves all pending game events and clears the internal buffer.
+        /// Retrieves all events queued since the last call and clears the buffer.
+        /// Events should be processed by the caller immediately after each service call.
         /// </summary>
         IReadOnlyList<IGameEvent> ConsumeEvents();
     }

@@ -6,8 +6,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class ResultTests
     {
-        // ── Success ───────────────────────────────────────────────────────────────
-
         [Test]
         public void Success_WithValue_IsSuccessIsTrue()
         {
@@ -50,8 +48,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(result.IsSuccess, Is.True);
         }
 
-        // ── Failure ───────────────────────────────────────────────────────────────
-
         [Test]
         public void Failure_WithMessage_IsSuccessIsFalse()
         {
@@ -86,8 +82,6 @@ namespace ARBattleship.Core.Tests.Domain
             var result = Result<string>.Failure("error");
             Assert.That(result.Value, Is.Null);
         }
-
-        // ── Type coverage ─────────────────────────────────────────────────────────
 
         [Test]
         public void Success_WithFireResult_ValueIsSet()

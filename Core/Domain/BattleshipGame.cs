@@ -2,30 +2,54 @@ using System;
 
 namespace ARBattleship.Core.Domain
 {
+    /// <summary>
+    /// Root domain aggregate for a Battleship match.
+    /// </summary>
     public class BattleshipGame
     {
+
+        /// <summary>Globally unique identifier for this game session.</summary>
         public Guid Id { get; } = Guid.NewGuid();
+
+        /// <summary>The human / local player's board (ships placed here).</summary>
         public Board PlayerOneBoard { get; }
+
+        /// <summary>The AI / remote opponent's board.</summary>
         public Board PlayerTwoBoard { get; }
+
+        /// <summary>The player whose turn it currently is.</summary>
         public PlayerId CurrentTurn { get; private set; }
+
+        /// <summary>Current lifecycle phase of the game.</summary>
         public GamePhase Phase { get; private set; }
 
-        // Kept for backwards compatibility — delegates to Phase
+        /// <summary>
+        /// Convenience shorthand for Phase == GamePhase.Finished.
+        /// Kept for backwards compatibility with code that predates the Phase property.
+        /// </summary>
         public bool IsGameOver => Phase == GamePhase.Finished;
 
+        /// <summary>
+        /// The player who won the game, or null if the game is still in progress.
+        /// Set when AllShipsSunk() returns true after a shot.
+        /// </summary>
         public PlayerId? Winner { get; private set; }
 
+        /// <summary>
+        /// Creates a new game with two empty boards.
+        /// The game starts in GamePhase.Setup and it is PlayerOne's turn.
+        /// </summary>
         public BattleshipGame(int size = 10)
         {
             PlayerOneBoard = new Board(size);
             PlayerTwoBoard = new Board(size);
-            CurrentTurn = PlayerId.PlayerOne;
-            Phase = GamePhase.Setup;
+            CurrentTurn    = PlayerId.PlayerOne; // PlayerOne always fires first
+            Phase          = GamePhase.Setup;
         }
 
         /// <summary>
         /// Transitions the game from Setup to InProgress.
-        /// Fails if either board has no ships placed, or if the game is not in Setup phase.
+        /// Requires that both players have placed at least one ship.
         /// </summary>
         public Result<bool> StartGame()
         {
@@ -43,7 +67,9 @@ namespace ARBattleship.Core.Domain
         }
 
         /// <summary>
-        /// Fires a shot on behalf of the given player. Only valid during InProgress.
+        /// Fires a shot on behalf of shooter at
+        /// coordinate on the opponent's board.
+        /// If the shot is valid, advances the turn (or ends the game if all ships sunk).
         /// </summary>
         public Result<FireResult> FireShot(PlayerId shooter, Coordinate coordinate)
         {
@@ -56,20 +82,25 @@ namespace ARBattleship.Core.Domain
             if (shooter != CurrentTurn)
                 return Result<FireResult>.Failure("Not your turn.");
 
+            // Each player fires at the opponent's board
             var targetBoard = (shooter == PlayerId.PlayerOne) ? PlayerTwoBoard : PlayerOneBoard;
-            var result = targetBoard.FireAt(coordinate);
+            var result      = targetBoard.FireAt(coordinate);
 
             if (result.IsSuccess)
             {
                 if (targetBoard.AllShipsSunk())
                 {
-                    Phase = GamePhase.Finished;
+                    // All opponent ships sunk — this player wins
+                    Phase  = GamePhase.Finished;
                     Winner = shooter;
                 }
                 else
                 {
-                    // Switch turn only on a successful valid shot
-                    CurrentTurn = (CurrentTurn == PlayerId.PlayerOne) ? PlayerId.PlayerTwo : PlayerId.PlayerOne;
+                    // Alternate turns only on a valid shot; invalid shots (already shot)
+                    // do not waste the player's turn.
+                    CurrentTurn = (CurrentTurn == PlayerId.PlayerOne)
+                        ? PlayerId.PlayerTwo
+                        : PlayerId.PlayerOne;
                 }
             }
 
@@ -77,8 +108,9 @@ namespace ARBattleship.Core.Domain
         }
 
         /// <summary>
-        /// Places a ship for the given player. Only valid during Setup.
-        /// Both players can place freely without taking turns.
+        /// Places ship on the board belonging to player
+        /// Only valid during GamePhase.Setup
+        /// Both players may place ships simultaneously without turn restrictions.
         /// </summary>
         public Result<bool> PlaceShip(PlayerId player, Ship ship)
         {

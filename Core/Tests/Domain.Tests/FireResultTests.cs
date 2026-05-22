@@ -6,12 +6,8 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class FireResultTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
-
         private static readonly Coordinate TestCoord = new Coordinate(3, 5);
         private static ShipId MakeShipId() => ShipId.New();
-
-        // ── Miss factory ──────────────────────────────────────────────────────────
 
         [Test]
         public void Miss_ValidCoordinate_OutcomeIsMiss()
@@ -54,8 +50,6 @@ namespace ARBattleship.Core.Tests.Domain
             var result = FireResult.Miss(TestCoord);
             Assert.That(result.IsSunk, Is.False);
         }
-
-        // ── Hit factory ───────────────────────────────────────────────────────────
 
         [Test]
         public void Hit_ValidArgs_OutcomeIsHit()
@@ -100,8 +94,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(result.IsSunk, Is.False);
         }
 
-        // ── Sunk factory ──────────────────────────────────────────────────────────
-
         [Test]
         public void Sunk_ValidArgs_OutcomeIsSunk()
         {
@@ -145,8 +137,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(result.IsSunk, Is.True);
         }
 
-        // ── IsHit derived property ────────────────────────────────────────────────
-
         [Test]
         public void IsHit_OutcomeIsMiss_ReturnsFalse()
         {
@@ -167,8 +157,6 @@ namespace ARBattleship.Core.Tests.Domain
             var result = FireResult.Sunk(TestCoord, MakeShipId(), "Battleship");
             Assert.That(result.IsHit, Is.True);
         }
-
-        // ── IsSunk derived property ───────────────────────────────────────────────
 
         [Test]
         public void IsSunk_OutcomeIsMiss_ReturnsFalse()
