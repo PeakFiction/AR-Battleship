@@ -9,7 +9,6 @@ namespace ARBattleship.Core.Tests.Application
     [TestFixture]
     public class EnemyTurnServiceTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
 
         private static void PlaceShip(BattleshipGame game, PlayerId player, string type, int startX, int startY)
         {
@@ -40,13 +39,11 @@ namespace ARBattleship.Core.Tests.Application
             return new EnemyTurnService(game, strategy);
         }
 
-        // ── TakeTurn ──────────────────────────────────────────────────────────────
 
         [Test]
         public void TakeTurn_NotEnemyTurn_ReturnsFailure()
         {
             var service = MakeService(out _);
-            // It's PlayerOne's turn at game start
             var result = service.TakeTurn();
             Assert.That(result.IsSuccess, Is.False);
         }
@@ -55,7 +52,7 @@ namespace ARBattleship.Core.Tests.Application
         public void TakeTurn_EnemyTurn_ReturnsSuccess()
         {
             var service = MakeService(out var game);
-            game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9)); // Miss, switches to PlayerTwo
+            game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9));
 
             var result = service.TakeTurn();
 
@@ -90,8 +87,6 @@ namespace ARBattleship.Core.Tests.Application
         {
             var service = MakeService(out var game);
 
-            // Sink all of PlayerOne's ships to end the game
-            // Fire as PlayerTwo via direct game calls
             for (int row = 0; row < 5 && !game.IsGameOver; row++)
             {
                 int size = new[] { 5, 4, 3, 3, 2 }[row];
@@ -126,9 +121,9 @@ namespace ARBattleship.Core.Tests.Application
         {
             var service = MakeService(out var game);
             game.FireShot(PlayerId.PlayerOne, new Coordinate(9, 9));
-            service.TakeTurn(); // Takes the turn, switches back to PlayerOne
+            service.TakeTurn();
 
-            var result = service.TakeTurn(); // Not PlayerTwo's turn anymore
+            var result = service.TakeTurn();
 
             Assert.That(result.IsSuccess, Is.False);
         }

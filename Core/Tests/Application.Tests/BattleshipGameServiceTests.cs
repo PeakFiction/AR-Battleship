@@ -13,7 +13,6 @@ namespace ARBattleship.Core.Tests.Application
     [TestFixture]
     public class BattleshipGameServiceTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
 
         private static BattleshipGame MakeGame() => new BattleshipGame(10);
 
@@ -55,7 +54,6 @@ namespace ARBattleship.Core.Tests.Application
             PlayerId player, string type, int x, int y, Orientation orientation = Orientation.Horizontal)
             => new ShipPlacementCommand(player, type, new Coordinate(x, y), orientation);
 
-        // ── GetSnapshot ───────────────────────────────────────────────────────────
 
         [Test]
         public void GetSnapshot_NewGame_ReturnsSnapshot()
@@ -108,7 +106,7 @@ namespace ARBattleship.Core.Tests.Application
         public void GetSnapshot_AfterHit_CellStateIsHit()
         {
             var service = MakeStartedGame(out var game);
-            game.FireShot(PlayerId.PlayerOne, new Coordinate(0, 0)); // Carrier at row 0
+            game.FireShot(PlayerId.PlayerOne, new Coordinate(0, 0));
 
             var snapshot = service.GetSnapshot(PlayerId.PlayerOne);
             var cell = snapshot.PlayerTwo.Cells.First(c => c.X == 0 && c.Y == 0);
@@ -121,9 +119,8 @@ namespace ARBattleship.Core.Tests.Application
         {
             var service = MakeStartedGame(out var game);
 
-            // Sink destroyer at row 4 (size 2: cells 0,4 and 1,4)
             game.FireShot(PlayerId.PlayerOne, new Coordinate(0, 4));
-            game.FireShot(PlayerId.PlayerTwo, new Coordinate(9, 9)); // AI turn
+            game.FireShot(PlayerId.PlayerTwo, new Coordinate(9, 9));
             game.FireShot(PlayerId.PlayerOne, new Coordinate(1, 4));
 
             var snapshot = service.GetSnapshot(PlayerId.PlayerOne);
@@ -148,7 +145,6 @@ namespace ARBattleship.Core.Tests.Application
             Assert.That(snapshot.IsGameOver, Is.False);
         }
 
-        // ── TryFireShot ───────────────────────────────────────────────────────────
 
         [Test]
         public void TryFireShot_DuringSetup_ReturnsGameNotStarted()
@@ -234,8 +230,6 @@ namespace ARBattleship.Core.Tests.Application
         {
             var service = MakeStartedGame(out var game);
 
-            // Sweep every cell — PlayerOne fires at PlayerTwo's board,
-            // PlayerTwo fires harmless misses at empty cells to keep turns alternating.
             int p2MissX = 9, p2MissY = 9;
             for (int x = 0; x < 10 && !game.IsGameOver; x++)
             {
@@ -248,7 +242,6 @@ namespace ARBattleship.Core.Tests.Application
 
                     if (!game.IsGameOver && game.CurrentTurn == PlayerId.PlayerTwo)
                     {
-                        // Find an unshot cell on PlayerOne's board for the AI miss
                         while (p2MissX >= 0 &&
                                game.PlayerOneBoard.GetCell(new Coordinate(p2MissX, p2MissY)).IsShot)
                         {
@@ -266,7 +259,6 @@ namespace ARBattleship.Core.Tests.Application
             Assert.That(result.Error, Is.EqualTo(GameErrorCode.GameAlreadyFinished));
         }
 
-        // ── TryFireShot — events ──────────────────────────────────────────────────
 
         [Test]
         public void TryFireShot_ValidShot_RaisesShotFiredEvent()
@@ -302,7 +294,6 @@ namespace ARBattleship.Core.Tests.Application
             Assert.That(events.OfType<AnnouncementEvent>().Any(), Is.True);
         }
 
-        // ── TryPlaceShip ──────────────────────────────────────────────────────────
 
         [Test]
         public void TryPlaceShip_ValidPlacement_ReturnsSuccess()
@@ -385,8 +376,6 @@ namespace ARBattleship.Core.Tests.Application
             var events = service.ConsumeEvents();
             Assert.That(events.OfType<ShipPlacedEvent>().Any(), Is.True);
         }
-
-        // ── ConsumeEvents ─────────────────────────────────────────────────────────
 
         [Test]
         public void ConsumeEvents_AfterConsume_BufferIsEmpty()

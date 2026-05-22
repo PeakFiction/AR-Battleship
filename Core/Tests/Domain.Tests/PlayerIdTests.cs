@@ -6,8 +6,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class PlayerIdTests
     {
-        // ── Factory properties ────────────────────────────────────────────────────
-
         [Test]
         public void PlayerOne_Value_IsPlayer1()
         {
@@ -25,8 +23,6 @@ namespace ARBattleship.Core.Tests.Domain
         {
             Assert.That(PlayerId.PlayerOne.Value, Is.Not.EqualTo(PlayerId.PlayerTwo.Value));
         }
-
-        // ── Equality (record) ─────────────────────────────────────────────────────
 
         [Test]
         public void PlayerOne_NotEqualToPlayerTwo_ReturnsTrue()
@@ -62,8 +58,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(a != b, Is.False);
         }
 
-        // ── IsOpponentOf ──────────────────────────────────────────────────────────
-
         [Test]
         public void IsOpponentOf_PlayerOneVsPlayerTwo_ReturnsTrue()
         {
@@ -87,8 +81,6 @@ namespace ARBattleship.Core.Tests.Domain
         {
             Assert.That(PlayerId.PlayerTwo.IsOpponentOf(PlayerId.PlayerTwo), Is.False);
         }
-
-        // ── ToString ──────────────────────────────────────────────────────────────
 
         [Test]
         public void ToString_PlayerOne_ReturnsPlayer1()

@@ -9,14 +9,12 @@ namespace ARBattleship.Core.Tests.Application
     [TestFixture]
     public class EnemyShipPlacementServiceTests
     {
-        // ── Helpers ───────────────────────────────────────────────────────────────
 
         private static EnemyShipPlacementService MakeService(int? seed = null)
             => new EnemyShipPlacementService(seed.HasValue ? new Random(seed.Value) : null);
 
         private static BattleshipGame MakeGame() => new BattleshipGame(10);
 
-        // ── PlaceAllShips ─────────────────────────────────────────────────────────
 
         [Test]
         public void PlaceAllShips_StandardGame_ReturnsSuccess()
@@ -87,7 +85,6 @@ namespace ARBattleship.Core.Tests.Application
             service.PlaceAllShips(game);
             var result = service.PlaceAllShips(game);
 
-            // All ship types already placed — second call should fail
             Assert.That(result.IsSuccess, Is.False);
         }
 
@@ -105,7 +102,6 @@ namespace ARBattleship.Core.Tests.Application
         [Test]
         public void PlaceAllShips_MultipleCalls_ProduceDifferentLayouts()
         {
-            // Two services with different seeds should produce different placements
             var service1 = MakeService(1);
             var service2 = MakeService(99);
 
@@ -125,7 +121,6 @@ namespace ARBattleship.Core.Tests.Application
                 .OrderBy(c => c.X).ThenBy(c => c.Y)
                 .ToList();
 
-            // Different seeds should produce different layouts
             Assert.That(positions1.SequenceEqual(positions2), Is.False);
         }
 

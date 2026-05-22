@@ -7,8 +7,6 @@ namespace ARBattleship.Core.Tests.Domain
     [TestFixture]
     public class ShipIdTests
     {
-        // ── Constructor ───────────────────────────────────────────────────────────
-
         [Test]
         public void Constructor_ValidGuid_ToStringMatchesGuid()
         {
@@ -24,8 +22,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(id.ToString(), Is.EqualTo(Guid.Empty.ToString()));
         }
 
-        // ── New ───────────────────────────────────────────────────────────────────
-
         [Test]
         public void New_CalledTwice_ReturnsDifferentIds()
         {
@@ -40,8 +36,6 @@ namespace ARBattleship.Core.Tests.Domain
             var id = ShipId.New();
             Assert.That(id.ToString(), Is.Not.EqualTo(Guid.Empty.ToString()));
         }
-
-        // ── Equals (typed) ────────────────────────────────────────────────────────
 
         [Test]
         public void Equals_SameGuid_ReturnsTrue()
@@ -66,8 +60,6 @@ namespace ARBattleship.Core.Tests.Domain
             var a = ShipId.New();
             Assert.That(a.Equals(a), Is.True);
         }
-
-        // ── Equals (object overload) ──────────────────────────────────────────────
 
         [Test]
         public void Equals_Object_SameGuid_ReturnsTrue()
@@ -100,8 +92,6 @@ namespace ARBattleship.Core.Tests.Domain
             Assert.That(a.Equals("not a ship id"), Is.False);
         }
 
-        // ── GetHashCode ───────────────────────────────────────────────────────────
-
         [Test]
         public void GetHashCode_SameGuid_ReturnsSameHash()
         {
@@ -118,8 +108,6 @@ namespace ARBattleship.Core.Tests.Domain
             var b = ShipId.New();
             Assert.That(a.GetHashCode(), Is.Not.EqualTo(b.GetHashCode()));
         }
-
-        // ── ToString ──────────────────────────────────────────────────────────────
 
         [Test]
         public void ToString_ReturnsGuidString()
