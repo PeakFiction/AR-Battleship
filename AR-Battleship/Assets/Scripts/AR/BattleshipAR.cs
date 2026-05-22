@@ -4,55 +4,69 @@ using ARBattleship.Core.Application.Enums;
 using ARBattleship.Unity;
 using System.Collections.Generic;
 
+/// <summary>
+/// Controls the AR (Augmented Reality) game board using Vuforia image tracking.
+/// Tracks three image targets: board (enemy grid), aim (targeting), and fire (confirm shot).
+/// Handles visual effects (missiles, explosions) and user interaction in AR mode.
+/// </summary>
 public class BattleshipAR : MonoBehaviour
 {
     [Header("Vuforia Targets")]
-    public ObserverBehaviour boardObserver;
-    public ObserverBehaviour aimObserver;
-    public ObserverBehaviour confirmObserver;
+    public ObserverBehaviour boardObserver;  // Tracks the enemy grid image target
+    public ObserverBehaviour aimObserver;    // Tracks the aim/targeting image target
+    public ObserverBehaviour confirmObserver; // Tracks the fire/confirm image target
 
     [Header("Board Settings")]
     public int gridRows = 10;
     public int gridCols = 10;
-    public float cellSize = 0.016f;
+    public float cellSize = 0.016f; // Size of each cell in Unity units
 
     [Header("Grid Offset from Tracking Image")]
     public float offsetX = 0f;
-    public float offsetZ = 0.15f;
+    public float offsetZ = 0.15f; // Offsets adjust grid position relative to tracked image
 
     [Header("Visuals")]
     public Color gridColor = Color.cyan;
-    public Color hoverColor = Color.yellow;
+    public Color hoverColor = Color.yellow;  // Color when aiming at a cell
     public Color hitColor = Color.red;
     public Color missColor = Color.white;
     public Color labelColor = Color.white;
 
-    private bool boardTracked = false;
-    private bool aimTracked = false;
-    private bool confirmTracked = false;
+    // Tracking states for the three image targets
+    private bool boardTracked = false;  // Is the enemy grid visible?
+    private bool aimTracked = false;    // Is the aim marker visible?
+    private bool confirmTracked = false; // Is the fire marker visible?
     private bool confirmJustDetected = false;
     private bool smoothingInitialized = false;
 
-    private GameObject[,] cellObjects;
-    private bool[,] cellFired;
-    private ShotOutcome?[,] cellOutcomes;  // Track hit/miss state for each cell
-    private List<GameObject> spawnedPrefabs = new List<GameObject>();  // Track spawned rockets/effects for cleanup
-    private GameObject hoverIndicator;
-    private GameObject gridBorder;
-    private GameObject[] columnLabels;
-    private GameObject[] rowLabels;
+    // Grid state - tracks which cells have been fired and their outcomes
+    private GameObject[,] cellObjects;        // Visual cell game objects
+    private bool[,] cellFired;                // Has this cell been shot?
+    private ShotOutcome?[,] cellOutcomes;     // What was the outcome? (Hit/Miss/Sunk)
+    private List<GameObject> spawnedPrefabs = new List<GameObject>();  // All spawned effects (missiles, fires) for cleanup
+    
+    // UI elements
+    private GameObject hoverIndicator; // Visual indicator when aiming
+    private GameObject gridBorder;     // Border around the grid
+    private GameObject[] columnLabels; // A, B, C... labels
+    private GameObject[] rowLabels;    // 1, 2, 3... labels
+    
+    // Cell selection state
     private Vector2Int currentHoverCell = new Vector2Int(-1, -1);
-    private Vector2Int lockedCell = new Vector2Int(-1, -1);
+    private Vector2Int lockedCell = new Vector2Int(-1, -1);  // Cell locked in when aim tag is placed
     private Vector2Int previousHoverCell = new Vector2Int(-1, -1);
 
     private float boardWidth;
     private float boardHeight;
 
+    // Smooth tracking for aim marker movement
     private Vector3 smoothedLocalPos;
     private float smoothSpeed = 5f;
-    public GameObject customCellPrefab;
-    public GameObject rocketPrefab;
-    public GameObject hitRocketPrefab;
+    
+    // Prefabs for visual effects
+    public GameObject customCellPrefab;  // Cell tile prefab
+    public GameObject rocketPrefab;      // Miss animation prefab
+    public GameObject hitRocketPrefab;   // Hit animation prefab
     public Transform targetTile;
     private Color originalTileColor;
 
@@ -98,6 +112,7 @@ public class BattleshipAR : MonoBehaviour
         CreateHoverIndicator();
     }
 
+    // Subscribe to game events - will receive shot notifications even when board isn't visible
     void OnEnable()
     {
         GameManager.OnPlayerShotFired += HandlePlayerShot;
@@ -106,6 +121,7 @@ public class BattleshipAR : MonoBehaviour
         GameManager.OnGameStarted += ResetBoardState;
     }
 
+    // Unsubscribe from events to prevent memory leaks
     void OnDisable()
     {
         GameManager.OnPlayerShotFired -= HandlePlayerShot;
@@ -114,11 +130,17 @@ public class BattleshipAR : MonoBehaviour
         GameManager.OnGameStarted -= ResetBoardState;
     }
 
+    /// <summary>
+    /// Resets the board for a new game.
+    /// Destroys all spawned visual effects (missiles, fires, explosions).
+    /// Clears tracking data for fired cells.
+    /// Cell tiles themselves are NOT destroyed - they persist and are reused.
+    /// </summary>
     void ResetBoardState()
     {
         Debug.Log("[AR] Resetting board state for new game");
         
-        // Destroy all spawned prefabs (rockets, fire effects, etc.)
+        // Clean up all spawned effects from previous game
         foreach (GameObject prefab in spawnedPrefabs)
         {
             if (prefab != null)
@@ -128,7 +150,7 @@ public class BattleshipAR : MonoBehaviour
         }
         spawnedPrefabs.Clear();
         
-        // Clear fired cells and outcomes for new game
+        // Clear game state tracking
         for (int x = 0; x < gridCols; x++)
         {
             for (int y = 0; y < gridRows; y++)
@@ -136,12 +158,16 @@ public class BattleshipAR : MonoBehaviour
                 cellFired[x, y] = false;
                 cellOutcomes[x, y] = null;
                 
-                // DON'T modify cell colors - they should retain prefab defaults
-                // The colored effects are shown via spawned prefabs (fire, splash)
+                // Cell colors are NOT reset here - they maintain their prefab's default appearance
+                // Visual effects (fire, splash) are separate spawned objects, not cell modifications
             }
         }
     }
 
+    /// <summary>
+    /// Spawns a missile that flies down and creates a splash effect when missing.
+    /// Adds to spawnedPrefabs list for cleanup when game resets.
+    /// </summary>
     void SpawnMissRocket(int col, int row) {
         if (rocketPrefab == null)
         {
@@ -162,6 +188,10 @@ public class BattleshipAR : MonoBehaviour
         missileScript.missTargetTileAlt = chosenTile.transform;
     }
 
+    /// <summary>
+    /// Spawns a missile that flies down and creates a fire/explosion effect when hitting a ship.
+    /// The fire effect shows which ship was hit and which segment.
+    /// </summary>
     void SpawnHitRocket(int col, int row, int? hitSegmentIndex, string? shipOrientation, string shipType) {
         if (hitRocketPrefab == null)
         {
@@ -196,16 +226,22 @@ public class BattleshipAR : MonoBehaviour
             shipType;
     }
 
+    /// <summary>
+    /// Handles when the player fires a shot at the enemy board.
+    /// ALWAYS tracks the shot in cellFired and cellOutcomes, even if board isn't visible.
+    /// Only spawns visual effects (missile, fire) if the AR board is currently being tracked.
+    /// This allows switching between 2D and AR modes mid-game without losing state.
+    /// </summary>
     void HandlePlayerShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
     {
-        // Always track fired cells and outcomes even if board not currently visible
+        // Track state regardless of visibility - this persists when switching between 2D/AR modes
         if (x >= 0 && x < gridCols && y >= 0 && y < gridRows)
         {
             cellFired[x, y] = true;
             cellOutcomes[x, y] = result;
         }
 
-        // Update visuals only if board is currently tracked/visible
+        // Only spawn visual effects if AR board is currently visible
         if (!boardTracked)
         {
             Debug.Log($"[AR] Shot tracked but board not visible - will sync when board detected");
@@ -215,6 +251,7 @@ public class BattleshipAR : MonoBehaviour
         hoverIndicator.SetActive(false);
         lockedCell = new Vector2Int(-1, -1);
 
+        // Spawn appropriate visual effect based on outcome
         if (result == ShotOutcome.Miss)
         {
             SpawnMissRocket(x, y);
@@ -228,24 +265,32 @@ public class BattleshipAR : MonoBehaviour
         Debug.Log($"[AR] Shot at a {shipOrientation} {shipType} at {hitSegmentIndex}");
     }
 
+    /// <summary>
+    /// Handles when the enemy fires a shot at the player's board.
+    /// Enemy shots are displayed on the minimap (handled by CombatUI), NOT on the AR board.
+    /// AR board only shows player's attacks against enemy.
+    /// </summary>
     void HandleEnemyShot(int x, int y, ShotOutcome result, int? hitSegmentIndex, string? shipOrientation, string? shipType)
     {
         Debug.Log($"[AR] Enemy shot at ({x},{y}) -> {result}");
         
-        // Enemy shots are displayed on the minimap (CombatUI handles this)
-        // AR board only shows player's shots against enemy
-        // Do nothing here - let CombatUI update the minimap
+        // Enemy shots go to the minimap - CombatUI handles this
+        // AR board only shows player's shots, not enemy's shots
+        // Do nothing here
     }
 
-    // Sync AR board visual state with tracked cellFired data
+    /// <summary>
+    /// Syncs the AR board's visual state when it becomes visible.
+    /// NOTE: Does NOT re-spawn effects (missiles, fires) - those are one-time animations.
+    /// Only ensures cells that were fired are visible.
+    /// If you fired shots while in 2D mode, the effects won't replay in AR mode.
+    /// </summary>
     void SyncBoardVisuals()
     {
         Debug.Log("[AR] Syncing board visuals with game state");
-        // Note: The visual effects (fire, splash) were already spawned when shots occurred
-        // We don't re-spawn them here - they're one-time animations
-        // The cellFired and cellOutcomes data is used for game logic, not visuals
-        // If the board wasn't visible when shots happened, the animations were skipped
-        // but the game state was still tracked
+        // Visual effects (missiles, fires) were spawned when shots occurred
+        // We don't re-spawn them - they're one-time animations
+        // The cellFired/cellOutcomes data is for game logic, not visual reconstruction
         
         // Just ensure cells that were fired are visible
         for (int x = 0; x < gridCols; x++)
