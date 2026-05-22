@@ -1,3 +1,7 @@
+// Local multiplayer session facade for the Battleship scene.
+// This script validates high-level client actions before forwarding them to
+// the network controller and tracks client-side phase/progress state.
+
 using System.Collections.Generic;
 using ARBattleship.Core.Application.Enums;
 using ARBattleship.Core.Domain;
@@ -5,6 +9,9 @@ using UnityEngine;
 
 namespace ARBattleship.Multiplayer.Battleship
 {
+    /// <summary>
+    /// Represents the local client's current multiplayer game phase.
+    /// </summary>
     public enum MultiplayerBattlePhase
     {
         WaitingForAssignment,
@@ -13,11 +20,20 @@ namespace ARBattleship.Multiplayer.Battleship
         GameOver
     }
 
+    /// <summary>
+    /// Provides a simple local API for UI and AR scripts to place ships,
+    /// start the game, and fire shots without directly handling RPCs.
+    /// </summary>
     public sealed class MultiplayerBattleshipSession : MonoBehaviour
     {
         [SerializeField] private NetworkBattleshipGameController networkController;
 
+        // Tracks local placement progress so duplicate local placement requests
+        // can be rejected before they reach the server.
         private readonly HashSet<string> placedShips = new HashSet<string>();
+
+        // Tracks local shots that were accepted by the server to prevent the
+        // same player from submitting the same coordinate again.
         private readonly bool[,] firedCells = new bool[10, 10];
 
         private int localPlayerNumber;
@@ -28,6 +44,7 @@ namespace ARBattleship.Multiplayer.Battleship
 
         private void OnEnable()
         {
+            // Subscribe to the static event bus raised by the network controller.
             NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
             NetworkBattleshipEvents.ShipPlacementAccepted += OnShipPlacementAccepted;
             NetworkBattleshipEvents.ShipPlacementRejected += OnShipPlacementRejected;
@@ -38,6 +55,8 @@ namespace ARBattleship.Multiplayer.Battleship
 
         private void OnDisable()
         {
+            // Unsubscribe to avoid duplicate callbacks after scene reloads or
+            // object disable/enable cycles.
             NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
             NetworkBattleshipEvents.ShipPlacementAccepted -= OnShipPlacementAccepted;
             NetworkBattleshipEvents.ShipPlacementRejected -= OnShipPlacementRejected;
@@ -46,6 +65,9 @@ namespace ARBattleship.Multiplayer.Battleship
             NetworkBattleshipEvents.ShotRejected -= OnShotRejected;
         }
 
+        /// <summary>
+        /// Requests a ship placement during the placement phase.
+        /// </summary>
         public void PlaceShip(string shipType, int x, int y, Orientation orientation)
         {
             if (phase != MultiplayerBattlePhase.ShipPlacement)
@@ -63,6 +85,9 @@ namespace ARBattleship.Multiplayer.Battleship
             networkController.RequestPlaceShip(shipType, x, y, orientation);
         }
 
+        /// <summary>
+        /// Marks the local player as ready to start the battle.
+        /// </summary>
         public void StartGame()
         {
             if (phase != MultiplayerBattlePhase.ShipPlacement)
@@ -74,6 +99,9 @@ namespace ARBattleship.Multiplayer.Battleship
             networkController.RequestStartGame();
         }
 
+        /// <summary>
+        /// Requests a shot at the given grid coordinate during battle.
+        /// </summary>
         public void FireShot(int x, int y)
         {
             if (phase != MultiplayerBattlePhase.Battle)
@@ -112,6 +140,8 @@ namespace ARBattleship.Multiplayer.Battleship
             int startY,
             int orientationValue)
         {
+            // Ignore placement notifications for the opponent. This local
+            // session only tracks the current player's placement state.
             if (playerNumber != localPlayerNumber)
             {
                 return;
@@ -153,6 +183,8 @@ namespace ARBattleship.Multiplayer.Battleship
         {
             if (shooterPlayerNumber == localPlayerNumber)
             {
+                // Only mark the cell locally once the server has accepted and
+                // resolved the shot.
                 firedCells[x, y] = true;
                 Debug.Log($"[Multiplayer] You fired at ({x}, {y}): {outcome}");
             }

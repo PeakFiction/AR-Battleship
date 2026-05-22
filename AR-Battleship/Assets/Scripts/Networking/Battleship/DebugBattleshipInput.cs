@@ -1,19 +1,30 @@
+// Temporary keyboard-driven test input for the multiplayer Battleship controller.
+// This script is intended for editor/debug use so the network flow can be tested
+// without needing the full AR input or UI setup.
+
 using ARBattleship.Core.Domain;
 using UnityEngine;
 
 namespace ARBattleship.Multiplayer.Battleship
 {
+    /// <summary>
+    /// Sends hard-coded ship placement and shot requests to the network
+    /// controller when specific keyboard keys are pressed.
+    /// </summary>
     public sealed class DebugBattleshipInput : MonoBehaviour
     {
         [SerializeField] private NetworkBattleshipGameController controller;
 
         private void Update()
         {
+            // The controller is assigned from the Inspector. If it is missing,
+            // avoid throwing null reference errors while testing the scene.
             if (controller == null)
             {
                 return;
             }
 
+            // Place each ship in a fixed horizontal row for quick debugging.
             if (Input.GetKeyDown(KeyCode.C))
             {
                 controller.RequestPlaceShip(
@@ -64,11 +75,13 @@ namespace ARBattleship.Multiplayer.Battleship
                 );
             }
 
+            // Press Enter after both players have placed ships to request battle start.
             if (Input.GetKeyDown(KeyCode.Return))
             {
                 controller.RequestStartGame();
             }
 
+            // Fire at a few fixed cells so shot RPCs can be tested quickly.
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
                 controller.RequestFireShot(0, 0);

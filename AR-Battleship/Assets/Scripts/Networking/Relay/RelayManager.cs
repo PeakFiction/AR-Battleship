@@ -1,3 +1,7 @@
+// Handles Unity Services, Relay allocation/joining, and multiplayer scene loading.
+// This manager persists across lobby scenes so the created or joined relay
+// session remains available when entering gameplay.
+
 using System;
 using System.Threading.Tasks;
 using Unity.Netcode;
@@ -9,6 +13,9 @@ using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Coordinates Unity Relay setup and exposes status events for lobby UI scripts.
+/// </summary>
 public class RelayManager : MonoBehaviour
 {
 	public static RelayManager Instance { get; private set; }
@@ -27,6 +34,7 @@ public class RelayManager : MonoBehaviour
 	public bool IsHost { get; private set; }
 	public bool IsClient { get; private set; }
 
+	// UI scripts subscribe to these events to update lobby labels and buttons.
 	public event Action<string> OnStatusChanged;
 	public event Action<string> OnJoinCodeChanged;
 	public event Action<int, int> OnClientCountChanged;
@@ -39,6 +47,7 @@ public class RelayManager : MonoBehaviour
 
 	private void Awake()
 	{
+		// Enforce a single persistent RelayManager across lobby/gameplay scenes.
 		if (Instance != null && Instance != this)
 		{
 			Destroy(gameObject);
@@ -59,16 +68,25 @@ public class RelayManager : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Opens the lobby creation screen.
+	/// </summary>
 	public void LoadCreateLobbyScene()
 	{
 		SceneManager.LoadScene(createLobbySceneName);
 	}
 
+	/// <summary>
+	/// Opens the lobby joining screen.
+	/// </summary>
 	public void LoadJoinLobbyScene()
 	{
 		SceneManager.LoadScene(joinLobbySceneName);
 	}
 
+	/// <summary>
+	/// Returns to the multiplayer menu screen.
+	/// </summary>
 	public void LoadMultiplayerMenuScene()
 	{
 		SceneManager.LoadScene(multiplayerMenuSceneName);
@@ -83,6 +101,8 @@ public class RelayManager : MonoBehaviour
 
 		await UnityServices.InitializeAsync();
 
+		// Relay requires an authenticated Unity Services player. Anonymous sign-in
+		// is enough for temporary multiplayer sessions.
 		if (!AuthenticationService.Instance.IsSignedIn)
 		{
 			await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -91,6 +111,10 @@ public class RelayManager : MonoBehaviour
 		servicesInitialized = true;
 	}
 
+	/// <summary>
+	/// Creates a Relay allocation, starts this instance as host, and publishes
+	/// the join code for the UI.
+	/// </summary>
 	public async Task<bool> CreateRelayAsync()
 	{
 		try
@@ -137,6 +161,9 @@ public class RelayManager : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Joins an existing Relay allocation using a host-provided join code.
+	/// </summary>
 	public async Task<bool> JoinRelayAsync(string code)
 	{
 		try
@@ -188,17 +215,25 @@ public class RelayManager : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Closes the current host session and immediately creates a new join code.
+	/// </summary>
 	public async Task<bool> RefreshRelayCodeAsync()
 	{
 		OnStatusChanged?.Invoke("Refreshing lobby code...");
 
 		ShutdownRelaySession();
 
+		// Give Netcode a short moment to release transport/session state before
+		// creating the replacement allocation.
 		await Task.Delay(250);
 
 		return await CreateRelayAsync();
 	}
 
+	/// <summary>
+	/// Starts the synchronized gameplay scene once the host and one client are connected.
+	/// </summary>
 	public void StartGameplayAsHost()
 	{
 		if (!IsHost || NetworkManager.Singleton == null)
@@ -228,6 +263,9 @@ public class RelayManager : MonoBehaviour
 			LoadSceneMode.Single);
 	}
 
+	/// <summary>
+	/// Stops the active Netcode/Relay session and resets lobby state.
+	/// </summary>
 	public void ShutdownRelaySession()
 	{
 		UnregisterNetworkCallbacks();
@@ -249,6 +287,8 @@ public class RelayManager : MonoBehaviour
 
 	private async Task PrepareForNewSessionAsync()
 	{
+		// Netcode cannot start a new host/client while a previous session is still
+		// listening, so shut it down first before creating or joining again.
 		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
 		{
 			ShutdownRelaySession();

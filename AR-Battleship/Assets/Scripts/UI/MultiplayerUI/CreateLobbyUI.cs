@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controls the host lobby screen, including relay code display, player count updates, refresh/back buttons, and starting the networked gameplay scene.
+/// </summary>
 public class CreateLobbyUI : MonoBehaviour
 {
 	[SerializeField] private TMP_Text codeText;
@@ -27,6 +30,9 @@ public class CreateLobbyUI : MonoBehaviour
 
 	private bool isStartingGame;
 
+	/// <summary>
+	/// Initialises the lobby UI, subscribes to relay/network events, and creates or displays the host relay code.
+	/// </summary>
 	private async void Start()
 	{
 		RegisterEvents();
@@ -62,6 +68,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Shows the controls that are only available to the host while waiting for another player.
+	/// </summary>
 	private void ShowHostLobbyUI()
 	{
 		if (codeText != null)
@@ -91,6 +100,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Shows the simplified waiting state used by clients after joining a host lobby.
+	/// </summary>
 	private void ShowClientWaitingUI()
 	{
 		if (codeText != null)
@@ -124,11 +136,17 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Unsubscribes from all events when the lobby UI object is destroyed.
+	/// </summary>
 	private void OnDestroy()
 	{
 		UnregisterEvents();
 	}
 
+	/// <summary>
+	/// Starts the host-only battle-start flow when the lobby is ready.
+	/// </summary>
 	public void OnStartGamePressed()
 	{
 		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost || isStartingGame)
@@ -139,6 +157,9 @@ public class CreateLobbyUI : MonoBehaviour
 		StartCoroutine(StartGameplayAfterPopup());
 	}
 
+	/// <summary>
+	/// Displays the start popup briefly before asking the host relay manager to load gameplay.
+	/// </summary>
 	private IEnumerator StartGameplayAfterPopup()
 	{
 		isStartingGame = true;
@@ -159,6 +180,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Requests a fresh relay join code and temporarily disables lobby action buttons while it is being created.
+	/// </summary>
 	public async void OnRefreshCodePressed()
 	{
 		if (RelayManager.Instance == null || !RelayManager.Instance.IsHost || isStartingGame)
@@ -174,6 +198,9 @@ public class CreateLobbyUI : MonoBehaviour
 		SetLobbyActionButtonsInteractable(true);
 	}
 
+	/// <summary>
+	/// Leaves the relay session and returns the player to the multiplayer menu or fallback lobby scene.
+	/// </summary>
 	public void OnBackPressed()
 	{
 		Debug.Log("Back button pressed");
@@ -194,6 +221,9 @@ public class CreateLobbyUI : MonoBehaviour
 		SceneManager.LoadScene("2LobbyScreen");
 	}
 
+	/// <summary>
+	/// Subscribes to relay manager and Netcode scene events used by the lobby screen.
+	/// </summary>
 	private void RegisterEvents()
 	{
 		if (RelayManager.Instance != null)
@@ -210,6 +240,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Removes relay manager and Netcode scene event subscriptions to avoid duplicate callbacks.
+	/// </summary>
 	private void UnregisterEvents()
 	{
 		if (RelayManager.Instance != null)
@@ -226,6 +259,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Reacts to the network gameplay scene load and locks the lobby controls once loading begins.
+	/// </summary>
 	private void HandleNetworkSceneEvent(SceneEvent sceneEvent)
 	{
 		if (sceneEvent.SceneEventType != SceneEventType.Load)
@@ -244,6 +280,9 @@ public class CreateLobbyUI : MonoBehaviour
 		SetLobbyActionButtonsInteractable(false);
 	}
 
+	/// <summary>
+	/// Displays status messages raised by the relay manager.
+	/// </summary>
 	private void HandleStatusChanged(string message)
 	{
 		if (statusText != null)
@@ -252,6 +291,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Updates the visible join code whenever the relay manager creates or refreshes it.
+	/// </summary>
 	private void HandleJoinCodeChanged(string code)
 	{
 		if (codeText == null)
@@ -268,6 +310,9 @@ public class CreateLobbyUI : MonoBehaviour
 		codeText.text = $"{code}";
 	}
 
+	/// <summary>
+	/// Refreshes the lobby player-count label from relay connection updates.
+	/// </summary>
 	private void HandleClientCountChanged(int connectedCount, int expectedCount)
 	{
 		if (playerCountText != null)
@@ -276,6 +321,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Enables the start button only when the host is allowed to begin the match.
+	/// </summary>
 	private void SetStartGameButton(bool canStart)
 	{
 		if (startGameButton != null)
@@ -284,6 +332,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Enables or disables host lobby buttons while async relay operations are running.
+	/// </summary>
 	private void SetLobbyActionButtonsInteractable(bool interactable)
 	{
 		bool allowed = interactable && !isStartingGame;
@@ -304,6 +355,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Shows the optional battle-start popup and updates its message text.
+	/// </summary>
 	private void ShowBattleStartingPopup()
 	{
 		if (battleStartingPopupText != null)
@@ -317,6 +371,9 @@ public class CreateLobbyUI : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Hides the battle-start popup when the lobby screen is idle.
+	/// </summary>
 	private void HideBattleStartingPopup()
 	{
 		if (battleStartingPopup != null)

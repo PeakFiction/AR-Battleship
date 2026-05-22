@@ -1,23 +1,37 @@
+// Static event bridge used by the network controller to notify scene/UI scripts.
+// Client RPCs raise these events locally so gameplay UI does not need to know
+// about Netcode RPC implementation details.
+
 using System;
 using ARBattleship.Core.Application.Enums;
 
 namespace ARBattleship.Multiplayer.Battleship
 {
+    /// <summary>
+    /// Central event bus for multiplayer Battleship network events.
+    /// </summary>
     public static class NetworkBattleshipEvents
     {
+        /// <summary>Raised when this client is assigned Player 1 or Player 2.</summary>
         public static event Action<int>? LocalPlayerAssigned;
 
+        /// <summary>Raised when the battle phase starts.</summary>
         public static event Action<int>? BattleStarted;
 
+        /// <summary>Raised when a ship placement request is accepted by the server.</summary>
         public static event Action<int, string, int, int, int>? ShipPlacementAccepted;
 
+        /// <summary>Raised when a ship placement request is rejected by the server.</summary>
         public static event Action<int, GameErrorCode>? ShipPlacementRejected;
 
+        /// <summary>Raised when a shot is accepted and resolved by the server.</summary>
         public static event Action<int, int, int, ShotOutcome, int?, string?, string?>? ShotResolved;
 
+        /// <summary>Raised when a shot request is rejected by the server.</summary>
         public static event Action<int, int, int, GameErrorCode>? ShotRejected;
 
-		public static event Action<int> GameOver;
+        /// <summary>Raised when the server detects that the game has ended.</summary>
+        public static event Action<int> GameOver;
 
         public static void RaiseLocalPlayerAssigned(int playerNumber)
         {
@@ -61,7 +75,15 @@ namespace ARBattleship.Multiplayer.Battleship
             string? shipOrientation,
             string? shipType)
         {
-            ShotResolved?.Invoke(shooterPlayerNumber, x, y, outcome, hitSegmentIndex, shipOrientation, shipType);
+            ShotResolved?.Invoke(
+                shooterPlayerNumber,
+                x,
+                y,
+                outcome,
+                hitSegmentIndex,
+                shipOrientation,
+                shipType
+            );
         }
 
         public static void RaiseShotRejected(
@@ -73,9 +95,9 @@ namespace ARBattleship.Multiplayer.Battleship
             ShotRejected?.Invoke(shooterPlayerNumber, x, y, errorCode);
         }
 
-		public static void RaiseGameOver(int winnerPlayerNumber)
-		{
-			GameOver?.Invoke(winnerPlayerNumber);
-		}
+        public static void RaiseGameOver(int winnerPlayerNumber)
+        {
+            GameOver?.Invoke(winnerPlayerNumber);
+        }
     }
 }
