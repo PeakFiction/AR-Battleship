@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="fireTagTestOptimised1" size="0.050000 0.050000" />
+    <ImageTarget name="aimTagTestOptimised1" size="0.050000 0.050000" />
+    <ImageTarget name="boardTestOptimized1" size="0.110000 0.082500" />
+    <ImageTarget name="board_tagver2" size="0.110000 0.082500" />
+    <ImageTarget name="board_tag_nu" size="0.073000 0.105620" />
+    <ImageTarget name="aim_target" size="0.053000 0.054238" />
+    <ImageTarget name="aim_target_confirm" size="0.053000 0.051327" />
+    <ImageTarget name="Boardtag2" size="10.100000 15.020230" />
+    <ImageTarget name="missile_confirm_tag_3" size="0.050000 0.050521" />
+    <ImageTarget name="missile_aim_tag_2" size="0.050000 0.049752" />
+    <ImageTarget name="newboardtag" size="0.073000 0.096529" />
+    <ImageTarget name="Missle_Confirm_Target_Tag_2" size="0.028000 0.028127" />
+    <ImageTarget name="Missle_Confirm_Target_Tag" size="0.070000 0.039156" />
+    <ImageTarget name="Missile_Target_Tag_Temporary" size="0.070000 0.036094" />
+    <ImageTarget name="sevenstars" size="0.055000 0.090249" />
+  </Tracking>
+</QCARConfig>
