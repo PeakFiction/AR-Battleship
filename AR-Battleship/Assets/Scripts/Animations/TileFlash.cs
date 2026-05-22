@@ -1,3 +1,9 @@
+// -----------------------------------------------------------------------------
+// File: TileFlash.cs
+// Purpose: Contains gameplay/visual behaviour logic for the AR Battleship project.
+// Comments were added automatically without modifying executable code.
+// -----------------------------------------------------------------------------
+
 using System.Collections;
 using System.Diagnostics;
 using UnityEngine;
@@ -9,39 +15,61 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
     private Color originalColor; // Color before event
 
     //Destroyer Ship sections
+    // Public field exposed in the Unity Inspector.
     public GameObject shipSegmentPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject DestroyerFrontPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject DestroyerBackPrefab;
 
     //subamrine sections
+    // Public field exposed in the Unity Inspector.
     public GameObject SubmarineBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject SubmarineMiddlePrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject SubmarineFrontPrefab;
 
     //Cruiser sections
+    // Public field exposed in the Unity Inspector.
     public GameObject CruiserBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CruiserMiddlePrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CruiserFrontPrefab;
 
     //Battleship sections
+    // Public field exposed in the Unity Inspector.
     public GameObject BattleshipBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject BattleshipSecondToBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject BattleshipSecondToFrontPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject BattleshipFrontPrefab;
 
     //Carrier sections
+    // Public field exposed in the Unity Inspector.
     public GameObject CarrierBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CarrierSecondToBackPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CarrierMiddlePrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CarrierSecondToFrontPrefab;
+    // Public field exposed in the Unity Inspector.
     public GameObject CarrierFrontPrefab;
 
+    // Public field exposed in the Unity Inspector.
     public GameObject firePrefab;
 
+    // Method responsible for: Vector3.
+    // Public field exposed in the Unity Inspector.
     public Vector3 shipSpawnOffset = new Vector3(0f, 0.01f, 0f);
 
     private bool alreadySpawned = false;
 
+    // Unity Start method called before the first frame update.
     void Start()
     {
         rend = GetComponent<Renderer>(); // Finds the Renderer attached to the same GameObject
@@ -49,6 +77,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
         originalColor = tileMaterial.color; // Stores starting color
     }
 
+    // Method responsible for: FlashThenRed.
     public void FlashThenRed(string shipType,
     int segmentIndex,
     string orientation) // Allows coroutine to be triggered from other scripts
@@ -61,6 +90,7 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
     orientation));
     }
 
+    // Coroutine used for timed gameplay or animation behaviour.
     private IEnumerator FlashRoutine(string shipType,
     int segmentIndex,
     string orientation)
@@ -158,20 +188,6 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
         }
         if (prefabToSpawn != null)
         {
-            //if (omak == 0) {
-                
-            //    omak = 1;
-            //    GameObject segment1 = Instantiate(SubmarineMiddlePrefab);
-            //    segment1.transform.SetParent(transform);
-            //    segment1.transform.localRotation = Quaternion.Euler(-90f, 90f, 0f);
-            //    segment1.transform.localPosition = new Vector3(0.01f, 0.08f, 0f);
-            //    segment1.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
-            //    //GameObject segment2 = Instantiate(CruiserMiddlePrefab);
-            //    //segment2.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-            //    //segment2.transform.localPosition = new Vector3(0, 0.08f, 0f);
-
-            //}
-            //UnityEngine.Debug.Log("PrefabToSpawn is NULL");
             GameObject segment =
                 Instantiate(prefabToSpawn);
 
@@ -203,10 +219,6 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                     float[] shipZRot = new float[] { 0f, 90f, 0f };
                     segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(shipXSegCoords[segmentIndex], 0.08f, 0f);
-                    //if (segmentIndex == 1)
-                    //{
-                    //    segment.transform.localScale = new Vector3(2f, 1.5f, 1.5f);
-                    //}
                 }
                 else if (shipType == "Submarine")
                 {
@@ -246,25 +258,14 @@ public class TileFlash : MonoBehaviour // MonoBehaviour: allows it to Be attache
                     float[] shipZSegCoords = new float[] {0f, 0.003f, 0.006f};
                     segment.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
                     segment.transform.localPosition = new Vector3(0, 0.08f, shipZSegCoords[segmentIndex]);
-                    //if (segmentIndex == 1)
-                    //{
-                    //    segment.transform.localScale = new Vector3(2f, 1.5f, 1.5f);
-                    //}
                 }
                 else if (shipType == "Submarine")
                 {
                     float[] shipZSegCoords = new float[] {0.01f, 0.005f, 0.006f};
                     float[] shipZRot = new float[] { 0f, 180f, -180f };
                     float[] shipYRot = new float[] { 0f, 180f, 180f };
-                    //float yRot = 180f;
-                    /*if(segmentIndex == 0)
-                    {
-                        yRot = -180f;
-                    }*/
-                    //segment.transform.localRotation = Quaternion.Euler(-90f, 180f, shipZRot[segmentIndex]);
                     segment.transform.localRotation = Quaternion.Euler(-90f, shipYRot[segmentIndex], shipZRot[segmentIndex]);
                     segment.transform.localPosition = new Vector3(0f, 0.08f, shipZSegCoords[segmentIndex]);
-                    //segment.transform.localScale = new Vector3(0.009f, 0.014f, 0.1f);
                 }
                 else if (shipType == "Destroyer")
                 {

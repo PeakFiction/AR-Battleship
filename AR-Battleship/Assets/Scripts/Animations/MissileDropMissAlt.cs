@@ -1,11 +1,21 @@
+// -----------------------------------------------------------------------------
+// File: MissileDropMissAlt.cs
+// Purpose: Contains gameplay/visual behaviour logic for the AR Battleship project.
+// Comments were added automatically without modifying executable code.
+// -----------------------------------------------------------------------------
+
 using System.Diagnostics;
 using UnityEngine;
 
 public class MissileDropMissAlt : MonoBehaviour
 {
+    // Public field exposed in the Unity Inspector.
     public float missDropSpeedAlt = 2f;
+    // Public field exposed in the Unity Inspector.
     public Transform missTargetTileAlt;
+    // Public field exposed in the Unity Inspector.
     public float missSpawnHeightAlt = 0.3f;
+    // Public field exposed in the Unity Inspector.
     public float missImpactHeightAlt = 0.01f;
 
     private Vector3 missStartPointAlt;
@@ -13,16 +23,17 @@ public class MissileDropMissAlt : MonoBehaviour
     private float missJourneyAlt = 0f;
     private bool missImpactDoneAlt = false;
 
+    // Unity Start method called before the first frame update.
     void Start()
     {
-        if (missTargetTileAlt != null) //hard coded anyways but this will check if the target exists
+        if (missTargetTileAlt != null) //This will check if the target exists
         {
             missStartPointAlt = missTargetTileAlt.position + new Vector3(0f, missSpawnHeightAlt, 0f);
             missEndPointAlt = missTargetTileAlt.position + new Vector3(0f, missImpactHeightAlt, 0f);
             transform.position = missStartPointAlt;
         }
     }
-
+    // Unity Update method called once per frame.
     void Update()
     {
         UnityEngine.Debug.Log(missTargetTileAlt);
