@@ -1,5 +1,8 @@
 # AR Battleship – Unity Client
 
+
+#### Note: This submission uses the OPTIONAL Final Team Project submission for `AR-Battleshipv1.0.apk`.
+
 ## Overview
 
 This README covers the Unity side of **AR Battleship**: the augmented-reality user interface, singleplayer scene flow, multiplayer lobby flow, audio/animation scripts, Android build process, and APK deployment.
