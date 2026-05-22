@@ -7,6 +7,9 @@ using UnityEngine.UI;
 
 namespace ARBattleship.Unity.UI
 {
+    /// <summary>
+    /// Displays the multiplayer victory or defeat overlay and provides navigation back to lobby or menu scenes.
+    /// </summary>
     public class MultiplayerGameOverUI : MonoBehaviour
     {
         [SerializeField] private string rematchSceneName = "2LobbyScreen";
@@ -23,29 +26,44 @@ namespace ARBattleship.Unity.UI
 
         private int localPlayerNumber;
 
+        /// <summary>
+        /// Ensures the overlay starts hidden before multiplayer game-over events occur.
+        /// </summary>
         private void Awake()
         {
             BuildGameOverUI();
             gameOverPanel.SetActive(false);
         }
 
+        /// <summary>
+        /// Subscribes to player-assignment and game-over events.
+        /// </summary>
         private void OnEnable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
             NetworkBattleshipEvents.GameOver += HandleGameOver;
         }
 
+        /// <summary>
+        /// Unsubscribes from multiplayer events to avoid duplicate overlays.
+        /// </summary>
         private void OnDisable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
             NetworkBattleshipEvents.GameOver -= HandleGameOver;
         }
 
+        /// <summary>
+        /// Stores the local player number used to decide victory or defeat text.
+        /// </summary>
         private void OnLocalPlayerAssigned(int playerNumber)
         {
             localPlayerNumber = playerNumber;
         }
 
+        /// <summary>
+        /// Displays the result overlay and chooses text based on whether the local player won.
+        /// </summary>
         private void HandleGameOver(int winnerPlayerNumber)
         {
             AudioClip jingle = gameOverJingle;
@@ -78,6 +96,9 @@ namespace ARBattleship.Unity.UI
             StartCoroutine(FadeIn());
         }
 
+        /// <summary>
+        /// Fades and scales the overlay in for a smoother game-over presentation.
+        /// </summary>
         private IEnumerator FadeIn()
         {
             float duration = 2.5f;
@@ -135,6 +156,9 @@ namespace ARBattleship.Unity.UI
             menuButton.gameObject.SetActive(true);
         }
 
+        /// <summary>
+        /// Generates the game-over overlay, result label, and navigation buttons.
+        /// </summary>
         private void BuildGameOverUI()
         {
             Canvas canvas = GetComponentInParent<Canvas>();
@@ -223,18 +247,27 @@ namespace ARBattleship.Unity.UI
             audioSource.loop = false;
         }
 
+        /// <summary>
+        /// Stops the network session and loads the multiplayer lobby screen.
+        /// </summary>
         private void ReturnToLobby()
         {
             ShutdownNetworkIfNeeded();
             SceneManager.LoadScene(rematchSceneName);
         }
 
+        /// <summary>
+        /// Stops the network session and loads the title/menu screen.
+        /// </summary>
         private void ReturnToMenu()
         {
             ShutdownNetworkIfNeeded();
             SceneManager.LoadScene(menuSceneName);
         }
 
+        /// <summary>
+        /// Safely shuts down Netcode before leaving the multiplayer match.
+        /// </summary>
         private void ShutdownNetworkIfNeeded()
         {
             if (NetworkManager.Singleton != null &&
@@ -244,6 +277,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Creates a generated UI button with consistent placement and styling.
+        /// </summary>
         private GameObject CreateButton(
             Transform parent,
             string label,

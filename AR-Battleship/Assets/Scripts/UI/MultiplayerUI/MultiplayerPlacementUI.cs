@@ -10,9 +10,15 @@ using ARBattleship.Multiplayer.Battleship;
 
 namespace ARBattleship.Unity.UI
 {
+    /// <summary>
+    /// Manages the multiplayer ship-placement screen, including grid painting, drag placement, server validation, and start-game requests.
+    /// </summary>
     public sealed class MultiplayerPlacementUI : MonoBehaviour
     {
         [System.Serializable]
+        /// <summary>
+        /// Inspector data for one selectable ship, including its button and ship-specific UI sprites.
+        /// </summary>
         public class ShipUIOption
         {
             public string shipType;
@@ -30,7 +36,10 @@ namespace ARBattleship.Unity.UI
             [Tooltip("Optional. Assign the ship-specific button box art. If empty, the existing Popup Button Box Image sprite is kept.")]
             public Sprite popupButtonBoxSprite;
         }
-
+ 
+        /// <summary>
+        /// Lightweight local representation of a ship placement before and after server confirmation.
+        /// </summary>
         private class PlacedShip
         {
             public string Type;
@@ -122,14 +131,17 @@ namespace ARBattleship.Unity.UI
         [SerializeField] private bool autoRequestStartWhenAllShipsPlaced = false;
         [SerializeField] private bool hidePlacementPanelOnBattleStart = true;
 
+        // Local placement state is kept here until the server confirms it.
         private readonly Dictionary<string, PlacedShip> confirmedShips = new Dictionary<string, PlacedShip>();
         private readonly Dictionary<string, int> shipIndexByType = new Dictionary<string, int>();
         private readonly HashSet<string> serverAcceptedShips = new HashSet<string>();
 
+        // Generated grid widgets are cached by coordinate for repainting and input control.
         private Button[,] gridButtons = new Button[10, 10];
         private Image[,] gridImages = new Image[10, 10];
         private Image[,] radiusDotImages = new Image[10, 10];
 
+        // Pending placement tracks the ship currently being previewed before confirmation.
         private PlacedShip pendingShip;
         private bool pendingValid;
         private string selectedShip;
@@ -139,6 +151,9 @@ namespace ARBattleship.Unity.UI
         private bool isSubmittingPlacements;
         private Coroutine submitPlacementsRoutine;
 
+        /// <summary>
+        /// Caches setup data, binds buttons, builds the grid, and prepares the initial placement state.
+        /// </summary>
         private void Start()
         {
             CacheShipIndexes();
@@ -153,6 +168,9 @@ namespace ARBattleship.Unity.UI
                 selectedShip = ships[0].shipType;
         }
 
+        /// <summary>
+        /// Subscribes to multiplayer placement and battle-start events.
+        /// </summary>
         private void OnEnable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned += OnLocalPlayerAssigned;
@@ -161,6 +179,9 @@ namespace ARBattleship.Unity.UI
             NetworkBattleshipEvents.BattleStarted += OnBattleStarted;
         }
 
+        /// <summary>
+        /// Unsubscribes from multiplayer placement and battle-start events.
+        /// </summary>
         private void OnDisable()
         {
             NetworkBattleshipEvents.LocalPlayerAssigned -= OnLocalPlayerAssigned;
@@ -169,6 +190,9 @@ namespace ARBattleship.Unity.UI
             NetworkBattleshipEvents.BattleStarted -= OnBattleStarted;
         }
 
+        /// <summary>
+        /// Builds a lookup table from ship type to inspector array index.
+        /// </summary>
         private void CacheShipIndexes()
         {
             shipIndexByType.Clear();
@@ -181,6 +205,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Connects ship selection buttons and drag handlers for each configured ship option.
+        /// </summary>
         private void SetupShipButtons()
         {
             if (ships == null) return;
@@ -204,6 +231,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Connects popup rotate/confirm buttons and drag handlers.
+        /// </summary>
         private void SetupPopup()
         {
             if (popupRotateButton != null)
@@ -229,6 +259,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Connects the start button and applies its initial visibility state.
+        /// </summary>
         private void SetupStartButton()
         {
             if (startButton == null) return;
@@ -237,6 +270,9 @@ namespace ARBattleship.Unity.UI
             UpdateStartButtonVisibility();
         }
 
+        /// <summary>
+        /// Adds an EventTrigger entry that forwards UI pointer events to a callback.
+        /// </summary>
         private void AddTrigger(EventTrigger trigger, EventTriggerType type, System.Action<BaseEventData> callback)
         {
             var entry = new EventTrigger.Entry { eventID = type };
@@ -244,6 +280,9 @@ namespace ARBattleship.Unity.UI
             trigger.triggers.Add(entry);
         }
 
+        /// <summary>
+        /// Creates the 10 by 10 placement grid and associated cell images.
+        /// </summary>
         private void BuildGrid()
         {
             if (gridRoot == null) return;
@@ -282,6 +321,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Creates one grid button and wires click/drag events for the given coordinate.
+        /// </summary>
         private Button CreateGridCell(int x, int y)
         {
             Button cell;
@@ -308,6 +350,9 @@ namespace ARBattleship.Unity.UI
             return cell;
         }
 
+        /// <summary>
+        /// Creates the small visual dot used to show no-placement radius cues.
+        /// </summary>
         private Image CreateRadiusDot(Transform parent)
         {
             GameObject dot = new GameObject("PlacementRadiusDot");
@@ -328,12 +373,18 @@ namespace ARBattleship.Unity.UI
             return image;
         }
 
+        /// <summary>
+        /// Builds the row and column labels around the placement grid.
+        /// </summary>
         private void BuildGridLabels()
         {
             BuildLabelRow(columnLabelRoot, i => (i + 1).ToString(), 10);
             BuildLabelRow(rowLabelRoot, i => ((char)('A' + i)).ToString(), 1);
         }
 
+        /// <summary>
+        /// Creates one row or column of generated coordinate labels.
+        /// </summary>
         private void BuildLabelRow(RectTransform root, System.Func<int, string> labelFactory, int constraintCount)
         {
             if (root == null || gridLabelPrefab == null) return;
@@ -354,6 +405,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Removes generated child objects before rebuilding labels or grid elements.
+        /// </summary>
         private void ClearChildren(Transform root)
         {
             if (root == null) return;
@@ -361,6 +415,9 @@ namespace ARBattleship.Unity.UI
                 Destroy(root.GetChild(i).gameObject);
         }
 
+        /// <summary>
+        /// Starts placing the selected ship from the ship list.
+        /// </summary>
         private void BeginPendingFromList(int index, bool clicked)
         {
             if (ships == null || index < 0 || index >= ships.Length) return;
@@ -391,12 +448,18 @@ namespace ARBattleship.Unity.UI
             UpdateStartButtonVisibility();
         }
 
+        /// <summary>
+        /// Allows the visible placement popup to be dragged to a new grid cell.
+        /// </summary>
         private void BeginPopupDrag(PointerEventData eventData)
         {
             if (pendingShip == null) return;
             DragPending(eventData);
         }
 
+        /// <summary>
+        /// Starts dragging an already confirmed ship from its current grid position.
+        /// </summary>
         private void BeginGridCellDrag(int x, int y, PointerEventData eventData)
         {
             PlacedShip placedShip = GetConfirmedShipAt(x, y);
@@ -421,6 +484,9 @@ namespace ARBattleship.Unity.UI
             DragPending(eventData);
         }
 
+        /// <summary>
+        /// Moves the pending ship preview to the grid cell currently under the pointer.
+        /// </summary>
         private void DragPending(PointerEventData eventData)
         {
             if (pendingShip == null || gridRoot == null) return;
@@ -429,6 +495,9 @@ namespace ARBattleship.Unity.UI
             MovePopupToPointer(eventData);
         }
 
+        /// <summary>
+        /// Finishes a drag operation while leaving the pending placement ready for confirmation.
+        /// </summary>
         private void EndDragPending(PointerEventData eventData)
         {
             if (pendingShip == null || gridRoot == null) return;
@@ -437,6 +506,9 @@ namespace ARBattleship.Unity.UI
             ShowPopupForShip(selectedShip);
         }
 
+        /// <summary>
+        /// Converts the current pointer position into a grid coordinate when possible.
+        /// </summary>
         private bool TryGetGridCellFromPointer(PointerEventData eventData, out int x, out int y)
         {
             x = -1;
@@ -468,6 +540,9 @@ namespace ARBattleship.Unity.UI
             return IsInsideGrid(x, y);
         }
 
+        /// <summary>
+        /// Handles tapping a grid cell to create, move, or edit a pending placement.
+        /// </summary>
         private void HandleGridCellClicked(int x, int y)
         {
             PlacedShip placedShip = GetConfirmedShipAt(x, y);
@@ -489,6 +564,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Returns the confirmed ship occupying a coordinate, if one exists.
+        /// </summary>
         private PlacedShip GetConfirmedShipAt(int x, int y)
         {
             foreach (PlacedShip ship in confirmedShips.Values)
@@ -499,6 +577,9 @@ namespace ARBattleship.Unity.UI
             return null;
         }
 
+        /// <summary>
+        /// Stores the current pending placement and updates its preview validity.
+        /// </summary>
         private void SetPendingShip(string type, int x, int y, Orientation orientation)
         {
             pendingShip = new PlacedShip(type, x, y, orientation);
@@ -508,6 +589,9 @@ namespace ARBattleship.Unity.UI
             UpdateStartButtonVisibility();
         }
 
+        /// <summary>
+        /// Checks whether a pending ship fits on the board without overlapping confirmed ships or exclusion radius.
+        /// </summary>
         private bool CanPreviewShip(PlacedShip ship)
         {
             foreach (Vector2Int cell in GetOccupiedCells(ship))
@@ -530,6 +614,9 @@ namespace ARBattleship.Unity.UI
             return true;
         }
 
+        /// <summary>
+        /// Accepts a valid pending placement locally and prepares it for server submission.
+        /// </summary>
         private void ConfirmPendingPlacement()
         {
             if (pendingShip == null || isSubmittingPlacements) return;
@@ -562,6 +649,9 @@ namespace ARBattleship.Unity.UI
                 TryStartGame();
         }
 
+        /// <summary>
+        /// Starts the placement submission flow when all required ships are locally placed.
+        /// </summary>
         private void TryStartGame()
         {
             if (isSubmittingPlacements)
@@ -593,6 +683,9 @@ namespace ARBattleship.Unity.UI
             submitPlacementsRoutine = StartCoroutine(SubmitPlacementsThenStartGame());
         }
 
+        /// <summary>
+        /// Submits each locally confirmed ship to the server before requesting the battle start.
+        /// </summary>
         private IEnumerator SubmitPlacementsThenStartGame()
         {
             if (session == null)
@@ -638,6 +731,9 @@ namespace ARBattleship.Unity.UI
             RequestStartGame();
         }
 
+        /// <summary>
+        /// Enables or disables placement buttons while submissions are in progress.
+        /// </summary>
         private void SetPlacementInteractable(bool interactable)
         {
             if (ships != null)
@@ -657,6 +753,9 @@ namespace ARBattleship.Unity.UI
                 startButton.interactable = interactable;
         }
 
+        /// <summary>
+        /// Asks the multiplayer session to start the battle after placement submission succeeds.
+        /// </summary>
         private void RequestStartGame()
         {
             if (session == null)
@@ -668,12 +767,18 @@ namespace ARBattleship.Unity.UI
             session.StartGame();
         }
 
+        /// <summary>
+        /// Stores the local multiplayer player number.
+        /// </summary>
         private void OnLocalPlayerAssigned(int playerNumber)
         {
             localPlayerNumber = playerNumber;
             Debug.Log($"[MultiplayerPlacementUI] You are Player {playerNumber}.");
         }
 
+        /// <summary>
+        /// Marks a ship as accepted by the server and advances the placement flow if needed.
+        /// </summary>
         private void OnShipPlacementAccepted(int playerNumber, string shipType, int startX, int startY, int orientationValue)
         {
             if (playerNumber != localPlayerNumber)
@@ -700,6 +805,9 @@ namespace ARBattleship.Unity.UI
                 TryStartGame();
         }
 
+        /// <summary>
+        /// Re-enables placement after the server rejects a submitted ship.
+        /// </summary>
         private void OnShipPlacementRejected(int playerNumber, GameErrorCode errorCode)
         {
             if (playerNumber != localPlayerNumber)
@@ -711,6 +819,9 @@ namespace ARBattleship.Unity.UI
             StartPulse();
         }
 
+        /// <summary>
+        /// Hides placement UI once the multiplayer battle begins.
+        /// </summary>
         private void OnBattleStarted(int startingPlayerNumber)
         {
             Debug.Log($"[MultiplayerPlacementUI] Battle started. Player {startingPlayerNumber} goes first.");
@@ -731,6 +842,9 @@ namespace ARBattleship.Unity.UI
                 gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// Automatically selects the next ship that has not yet been confirmed.
+        /// </summary>
         private void SelectNextUnplacedShip()
         {
             if (ships == null) return;
@@ -746,6 +860,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Returns the number of configured ship options while safely handling null arrays.
+        /// </summary>
         private int ShipOptionCount()
         {
             int count = 0;
@@ -760,6 +877,9 @@ namespace ARBattleship.Unity.UI
             return count;
         }
 
+        /// <summary>
+        /// Repaints confirmed ships, pending placement preview, and radius cues.
+        /// </summary>
         private void RepaintGrid()
         {
             ClearGridVisuals();
@@ -782,6 +902,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Resets all grid cells and radius dots to their default visual state.
+        /// </summary>
         private void ClearGridVisuals()
         {
             for (int y = 0; y < 10; y++)
@@ -797,6 +920,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Paints radius dots around a confirmed ship.
+        /// </summary>
         private void PaintShipRadiusDots(PlacedShip ship, Color color)
         {
             if (!showPlacementRadiusDots)
@@ -806,6 +932,9 @@ namespace ARBattleship.Unity.UI
                 PaintRadiusDot(cell.x, cell.y, color);
         }
 
+        /// <summary>
+        /// Highlights radius dots that conflict with the pending ship placement.
+        /// </summary>
         private void PaintPendingRadiusViolations(PlacedShip ship, Color color)
         {
             if (!showPlacementRadiusDots)
@@ -827,6 +956,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Shows a single radius dot on the requested grid cell.
+        /// </summary>
         private void PaintRadiusDot(int x, int y, Color color)
         {
             if (!IsInsideGrid(x, y))
@@ -841,6 +973,9 @@ namespace ARBattleship.Unity.UI
             dot.transform.SetAsLastSibling();
         }
 
+        /// <summary>
+        /// Checks whether a coordinate lies within a ship's surrounding no-placement radius.
+        /// </summary>
         private bool IsInsideShipRadius(Vector2Int cell, PlacedShip ship, bool includeShipCells)
         {
             foreach (Vector2Int radiusCell in GetShipRadiusCells(ship, includeShipCells))
@@ -852,6 +987,9 @@ namespace ARBattleship.Unity.UI
             return false;
         }
 
+        /// <summary>
+        /// Enumerates all cells in the one-tile radius around a ship.
+        /// </summary>
         private IEnumerable<Vector2Int> GetShipRadiusCells(PlacedShip ship, bool includeShipCells)
         {
             HashSet<Vector2Int> occupiedCells = new HashSet<Vector2Int>(GetOccupiedCells(ship));
@@ -880,6 +1018,9 @@ namespace ARBattleship.Unity.UI
                 yield return cell;
         }
 
+        /// <summary>
+        /// Colours every cell occupied by a ship placement.
+        /// </summary>
         private void PaintShipCells(PlacedShip ship, Color color)
         {
             foreach (Vector2Int cell in GetOccupiedCells(ship))
@@ -889,6 +1030,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Enumerates the exact board cells occupied by a ship.
+        /// </summary>
         private IEnumerable<Vector2Int> GetOccupiedCells(PlacedShip ship)
         {
             int size = Ship.GetSize(ship.Type);
@@ -900,6 +1044,9 @@ namespace ARBattleship.Unity.UI
                 yield return new Vector2Int(ship.X + offset.x * i, ship.Y + offset.y * i);
         }
 
+        /// <summary>
+        /// Rotates the pending ship and repaints the placement preview.
+        /// </summary>
         private void RotatePendingShip()
         {
             currentOrientation = currentOrientation == Orientation.Horizontal ? Orientation.Vertical : Orientation.Horizontal;
@@ -907,6 +1054,9 @@ namespace ARBattleship.Unity.UI
                 SetPendingShip(pendingShip.Type, pendingShip.X, pendingShip.Y, currentOrientation);
         }
 
+        /// <summary>
+        /// Chooses a centered starting coordinate for a newly selected ship.
+        /// </summary>
         private Vector2Int GetCenteredOrigin(string type, Orientation orientation)
         {
             int size = Ship.GetSize(type);
@@ -915,6 +1065,9 @@ namespace ARBattleship.Unity.UI
             return new Vector2Int(x, y);
         }
 
+        /// <summary>
+        /// Displays the placement popup for the selected ship type.
+        /// </summary>
         private void ShowPopupForShip(string type)
         {
             ShipUIOption option = GetShipOption(type);
@@ -922,6 +1075,9 @@ namespace ARBattleship.Unity.UI
             if (placementPopup != null) placementPopup.SetActive(true);
         }
 
+        /// <summary>
+        /// Finds the inspector configuration for a given ship type.
+        /// </summary>
         private ShipUIOption GetShipOption(string type)
         {
             if (string.IsNullOrWhiteSpace(type)) return null;
@@ -930,6 +1086,9 @@ namespace ARBattleship.Unity.UI
             return ships[index];
         }
 
+        /// <summary>
+        /// Applies ship-specific popup sprites while preserving fallback artwork.
+        /// </summary>
         private void ApplyPopupVisuals(ShipUIOption option)
         {
             if (option == null) return;
@@ -953,23 +1112,35 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Hides the placement popup and stops its pulse effect.
+        /// </summary>
         private void HidePopup()
         {
             if (placementPopup != null) placementPopup.SetActive(false);
         }
 
+        /// <summary>
+        /// Positions the popup at the current pointer location.
+        /// </summary>
         private void MovePopupToPointer(PointerEventData eventData)
         {
             if (popupFollowTarget == null) return;
             popupFollowTarget.position = eventData.position;
         }
 
+        /// <summary>
+        /// Starts the pulsing preview animation for pending ship cells.
+        /// </summary>
         private void StartPulse()
         {
             StopPulse();
             if (pendingShip != null) pulseRoutine = StartCoroutine(PulsePendingCells());
         }
 
+        /// <summary>
+        /// Stops the pulsing preview animation.
+        /// </summary>
         private void StopPulse()
         {
             if (pulseRoutine != null)
@@ -979,6 +1150,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Animates the pending placement cells by alternating between normal and darker preview colours.
+        /// </summary>
         private IEnumerator PulsePendingCells()
         {
             while (pendingShip != null)
@@ -996,6 +1170,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Repaints only confirmed ships and their radius indicators.
+        /// </summary>
         private void RepaintConfirmedOnly()
         {
             ClearGridVisuals();
@@ -1010,6 +1187,9 @@ namespace ARBattleship.Unity.UI
             }
         }
 
+        /// <summary>
+        /// Updates the selected-ship display artwork for the active ship option.
+        /// </summary>
         private void ApplySelectedShipImages(ShipUIOption option)
         {
             if (option == null) return;
@@ -1018,6 +1198,9 @@ namespace ARBattleship.Unity.UI
             SetImage(selectedShipBackingTextImage, option.backingTextSprite);
         }
 
+        /// <summary>
+        /// Safely assigns a sprite and visibility state to an image.
+        /// </summary>
         private void SetImage(Image image, Sprite sprite)
         {
             if (image == null) return;
@@ -1027,6 +1210,9 @@ namespace ARBattleship.Unity.UI
             image.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Shows and enables the start button only when placement is ready.
+        /// </summary>
         private void UpdateStartButtonVisibility()
         {
             if (startButton == null)
@@ -1044,14 +1230,23 @@ namespace ARBattleship.Unity.UI
             startButton.interactable = readyToStart;
         }
 
+        /// <summary>
+        /// Disables ship buttons that have already been confirmed.
+        /// </summary>
         private void UpdateShipButtonVisuals()
         {
             // Intentionally left blank.
             // Button state visuals are owned by the dedicated button feedback scripts.
         }
 
+        /// <summary>
+        /// Checks whether a coordinate is inside the placement board.
+        /// </summary>
         private bool IsInsideGrid(int x, int y) => x >= 0 && x < 10 && y >= 0 && y < 10;
 
+        /// <summary>
+        /// Stops running coroutines before the placement UI object is destroyed.
+        /// </summary>
         private void OnDestroy()
         {
             StopPulse();
